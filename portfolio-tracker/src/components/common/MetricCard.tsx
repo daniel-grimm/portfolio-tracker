@@ -25,7 +25,12 @@ export function MetricCard({
   };
 
   return (
-    <Card elevation={2}>
+    <Card
+      elevation={2}
+      sx={{
+        backgroundColor: "#ddd;",
+      }}
+    >
       <CardContent>
         <Typography color="text.secondary" gutterBottom variant="body2">
           {title}

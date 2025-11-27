@@ -88,8 +88,11 @@ export function PortfolioTable({ holdings }: PortfolioTableProps) {
           Add Holding
         </Button>
       </Box>
-      <TableContainer component={Paper} elevation={2}>
-        <Table size="small">
+      <TableContainer
+        component={Paper}
+        elevation={2}
+      >
+        <Table size="small" sx={{backgroundColor: '#ddd'}}>
           <TableHead>
             <TableRow>
               <TableCell>Ticker</TableCell>

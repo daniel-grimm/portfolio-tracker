@@ -6,13 +6,13 @@ import type {
   GeographicAllocation,
   DomesticIntlAllocation,
 } from "../types/portfolio.types";
-import { getStockData } from "../data/mockStocks";
 
 export function enrichHolding(holding: Holding): HoldingMetadata | null {
-  const stockData = getStockData(holding.ticker);
+  // Use the stock data snapshot stored with the holding
+  const stockData = holding.stockDataSnapshot;
 
   if (!stockData) {
-    console.error(`Stock data not found for ticker: ${holding.ticker}`);
+    console.error(`Stock data snapshot not found for holding: ${holding.ticker}`);
     return null;
   }
 

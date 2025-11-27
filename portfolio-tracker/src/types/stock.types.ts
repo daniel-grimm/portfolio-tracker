@@ -24,6 +24,7 @@ export interface StockData {
   marketCap: MarketCap;
   style: Style;
   isDomestic: boolean;
+  lastUpdated: number;  // Timestamp of when data was fetched
 }
 
 export interface EtfData {

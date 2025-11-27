@@ -6,6 +6,7 @@ export interface Holding {
   quantity: number;
   costBasis: number;
   purchaseDate?: string;
+  stockDataSnapshot: StockData;  // Store complete stock data with holding
 }
 
 export interface Portfolio {

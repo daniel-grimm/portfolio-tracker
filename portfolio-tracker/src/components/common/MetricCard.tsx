@@ -1,21 +1,26 @@
-import { Card, CardContent, Typography } from '@mui/material';
+import { Card, CardContent, Typography } from "@mui/material";
 
 interface MetricCardProps {
   title: string;
   value: string;
   subtitle?: string;
-  color?: 'success' | 'error' | 'default';
+  color?: "success" | "error" | "default";
 }
 
-export function MetricCard({ title, value, subtitle, color = 'default' }: MetricCardProps) {
+export function MetricCard({
+  title,
+  value,
+  subtitle,
+  color = "default",
+}: MetricCardProps) {
   const getColor = () => {
     switch (color) {
-      case 'success':
-        return 'success.main';
-      case 'error':
-        return 'error.main';
+      case "success":
+        return "success.main";
+      case "error":
+        return "error.main";
       default:
-        return 'text.primary';
+        return "text.primary";
     }
   };
 
@@ -25,7 +30,12 @@ export function MetricCard({ title, value, subtitle, color = 'default' }: Metric
         <Typography color="text.secondary" gutterBottom variant="body2">
           {title}
         </Typography>
-        <Typography variant="h5" component="div" color={getColor()} fontWeight={600}>
+        <Typography
+          variant="h5"
+          component="div"
+          color={getColor()}
+          fontWeight={600}
+        >
           {value}
         </Typography>
         {subtitle && (

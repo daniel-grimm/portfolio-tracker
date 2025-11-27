@@ -7,23 +7,27 @@ import {
   TextField,
   Autocomplete,
   Box,
-} from '@mui/material';
-import { useState, useEffect } from 'react';
-import { usePortfolio } from '../../context/PortfolioContext';
-import { getAllTickers, getStockData } from '../../data/mockStocks';
-import type { EnrichedHolding } from '../../types/portfolio.types';
+} from "@mui/material";
+import { useState, useEffect } from "react";
+import { usePortfolio } from "../../context/PortfolioContext";
+import { getAllTickers, getStockData } from "../../data/mockStocks";
+import type { HoldingMetadata } from "../../types/portfolio.types";
 
 interface AddHoldingDialogProps {
   open: boolean;
   onClose: () => void;
-  editingHolding: EnrichedHolding | null;
+  editingHolding: HoldingMetadata | null;
 }
 
-export function AddHoldingDialog({ open, onClose, editingHolding }: AddHoldingDialogProps) {
+export function AddHoldingDialog({
+  open,
+  onClose,
+  editingHolding,
+}: AddHoldingDialogProps) {
   const { addHolding, updateHolding } = usePortfolio();
-  const [ticker, setTicker] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [costBasis, setCostBasis] = useState('');
+  const [ticker, setTicker] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [costBasis, setCostBasis] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const allTickers = getAllTickers();
@@ -34,9 +38,9 @@ export function AddHoldingDialog({ open, onClose, editingHolding }: AddHoldingDi
       setQuantity(editingHolding.quantity.toString());
       setCostBasis(editingHolding.costBasis.toString());
     } else {
-      setTicker('');
-      setQuantity('');
-      setCostBasis('');
+      setTicker("");
+      setQuantity("");
+      setCostBasis("");
     }
     setErrors({});
   }, [editingHolding, open]);
@@ -45,19 +49,19 @@ export function AddHoldingDialog({ open, onClose, editingHolding }: AddHoldingDi
     const newErrors: { [key: string]: string } = {};
 
     if (!ticker) {
-      newErrors.ticker = 'Please select a ticker';
+      newErrors.ticker = "Please select a ticker";
     } else if (!getStockData(ticker)) {
-      newErrors.ticker = 'Invalid ticker symbol';
+      newErrors.ticker = "Invalid ticker symbol";
     }
 
     const quantityNum = parseFloat(quantity);
     if (!quantity || isNaN(quantityNum) || quantityNum <= 0) {
-      newErrors.quantity = 'Quantity must be greater than 0';
+      newErrors.quantity = "Quantity must be greater than 0";
     }
 
     const costBasisNum = parseFloat(costBasis);
     if (!costBasis || isNaN(costBasisNum) || costBasisNum <= 0) {
-      newErrors.costBasis = 'Cost basis must be greater than 0';
+      newErrors.costBasis = "Cost basis must be greater than 0";
     }
 
     setErrors(newErrors);
@@ -85,9 +89,9 @@ export function AddHoldingDialog({ open, onClose, editingHolding }: AddHoldingDi
   };
 
   const handleClose = () => {
-    setTicker('');
-    setQuantity('');
-    setCostBasis('');
+    setTicker("");
+    setQuantity("");
+    setCostBasis("");
     setErrors({});
     onClose();
   };
@@ -95,14 +99,14 @@ export function AddHoldingDialog({ open, onClose, editingHolding }: AddHoldingDi
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {editingHolding ? 'Edit Holding' : 'Add New Holding'}
+        {editingHolding ? "Edit Holding" : "Add New Holding"}
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
           <Autocomplete
             options={allTickers}
             value={ticker}
-            onChange={(_, newValue) => setTicker(newValue || '')}
+            onChange={(_, newValue) => setTicker(newValue || "")}
             getOptionLabel={(option) => {
               const stock = getStockData(option);
               return stock ? `${option} - ${stock.name}` : option;
@@ -143,7 +147,7 @@ export function AddHoldingDialog({ open, onClose, editingHolding }: AddHoldingDi
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained">
-          {editingHolding ? 'Update' : 'Add'}
+          {editingHolding ? "Update" : "Add"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -9,30 +9,32 @@ import {
   Typography,
   Button,
   Box,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import { useState } from 'react';
-import type { EnrichedHolding } from '../../types/portfolio.types';
-import { HoldingRow } from './HoldingRow';
-import { AddHoldingDialog } from './AddHoldingDialog';
-import { usePortfolio } from '../../context/PortfolioContext';
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import { useState } from "react";
+import type { HoldingMetadata } from "../../types/portfolio.types";
+import { HoldingRow } from "./HoldingRow";
+import { AddHoldingDialog } from "./AddHoldingDialog";
+import { usePortfolio } from "../../context/PortfolioContext";
 
 interface PortfolioTableProps {
-  holdings: EnrichedHolding[];
+  holdings: HoldingMetadata[];
 }
 
 export function PortfolioTable({ holdings }: PortfolioTableProps) {
   const { deleteHolding } = usePortfolio();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingHolding, setEditingHolding] = useState<EnrichedHolding | null>(null);
+  const [editingHolding, setEditingHolding] = useState<HoldingMetadata | null>(
+    null
+  );
 
-  const handleEdit = (holding: EnrichedHolding) => {
+  const handleEdit = (holding: HoldingMetadata) => {
     setEditingHolding(holding);
     setDialogOpen(true);
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this holding?')) {
+    if (window.confirm("Are you sure you want to delete this holding?")) {
       deleteHolding(id);
     }
   };
@@ -44,7 +46,7 @@ export function PortfolioTable({ holdings }: PortfolioTableProps) {
 
   if (holdings.length === 0) {
     return (
-      <Paper sx={{ p: 4, textAlign: 'center' }}>
+      <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography variant="h6" color="text.secondary" gutterBottom>
           No Holdings Yet
         </Typography>
@@ -69,7 +71,14 @@ export function PortfolioTable({ holdings }: PortfolioTableProps) {
 
   return (
     <>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h6">Portfolio Holdings</Typography>
         <Button
           variant="contained"

@@ -1,8 +1,16 @@
-import type { EnrichedHolding, StyleBoxAllocation } from '../types/portfolio.types';
-import type { MarketCap, Style } from '../types/stock.types';
+import type {
+  HoldingMetadata,
+  StyleBoxAllocation,
+} from "../types/portfolio.types";
+import type { MarketCap, Style } from "../types/stock.types";
 
-export function calculateStyleBoxAllocation(enrichedHoldings: EnrichedHolding[]): StyleBoxAllocation {
-  const totalValue = enrichedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
+export function calculateStyleBoxAllocation(
+  enrichedHoldings: HoldingMetadata[]
+): StyleBoxAllocation {
+  const totalValue = enrichedHoldings.reduce(
+    (sum, h) => sum + h.currentValue,
+    0
+  );
 
   const allocation: StyleBoxAllocation = {
     largeValue: 0,
@@ -35,7 +43,10 @@ export function calculateStyleBoxAllocation(enrichedHoldings: EnrichedHolding[])
   return allocation;
 }
 
-function getStyleBoxKey(marketCap: MarketCap, style: Style): keyof StyleBoxAllocation {
+function getStyleBoxKey(
+  marketCap: MarketCap,
+  style: Style
+): keyof StyleBoxAllocation {
   const key = `${marketCap}${capitalize(style)}`;
   return key as keyof StyleBoxAllocation;
 }

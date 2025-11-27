@@ -1,4 +1,4 @@
-import type { StockData } from './stock.types';
+import type { StockData } from "./stock.types";
 
 export interface Holding {
   id: string;
@@ -12,7 +12,7 @@ export interface Portfolio {
   holdings: Holding[];
 }
 
-export interface EnrichedHolding extends Holding {
+export interface HoldingMetadata extends Holding {
   stockData: StockData;
   currentValue: number;
   totalCost: number;

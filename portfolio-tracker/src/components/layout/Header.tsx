@@ -26,6 +26,7 @@ export function Header({ currentTab, onTabChange }: HeaderProps) {
           >
             <Tab label="Dashboard" sx={{ color: 'white' }} />
             <Tab label="Analytics" sx={{ color: 'white' }} />
+            <Tab label="Tickers" sx={{ color: 'white' }} />
           </Tabs>
         </Toolbar>
       </Container>

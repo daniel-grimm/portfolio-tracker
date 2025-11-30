@@ -28,6 +28,7 @@ import type {
   StockData,
   Sector,
   Style,
+  MarketCap,
   SectorAllocationMap,
   CountryAllocationMap,
 } from "../../types/stock.types";
@@ -384,7 +385,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       annualDividend: parseFloat(annualDividend) || 0,
       sector: dominantSector,
       country: dominantCountry,
-      marketCap: marketCap as any,
+      marketCap: marketCap as MarketCap,
       style: style as Style,
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),

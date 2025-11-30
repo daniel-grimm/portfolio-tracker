@@ -7,7 +7,9 @@ import type {
   DomesticIntlAllocation,
 } from "../types/portfolio.types";
 
-export function enrichPosition(position: AggregatedPosition): PositionMetadata | null {
+export function enrichPosition(
+  position: AggregatedPosition
+): PositionMetadata | null {
   // Stock data is already attached to the aggregated position
   const stock = position.stock;
 
@@ -204,7 +206,7 @@ export function calculateDomesticIntlAllocation(
 
     if (stock.isEtf && stock.countryAllocations) {
       // ETF: calculate domestic portion from US allocation percentage
-      const usPercentage = stock.countryAllocations['US'] || 0;
+      const usPercentage = stock.countryAllocations["US"] || 0;
       domesticValue += position.currentValue * (usPercentage / 100);
     } else {
       // Stock: add full value if domestic

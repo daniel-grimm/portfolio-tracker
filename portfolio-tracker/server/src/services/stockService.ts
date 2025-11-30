@@ -9,7 +9,7 @@
  * - Staleness checking for stock data refreshes
  */
 
-import { db } from '../database/db.js';
+import { db } from "../database/db.js";
 
 // Type definitions matching frontend
 export type MarketCap = "mega" | "large" | "mid" | "small" | "micro";
@@ -83,13 +83,13 @@ interface StockRow {
   country: string;
   market_cap: string;
   style: string;
-  is_domestic: number;  // SQLite stores booleans as 0/1
+  is_domestic: number; // SQLite stores booleans as 0/1
   last_updated: number;
   created_at: number;
-  is_etf: number;  // SQLite stores booleans as 0/1
+  is_etf: number; // SQLite stores booleans as 0/1
   description: string | null;
-  sector_allocations: string | null;  // JSON string
-  country_allocations: string | null;  // JSON string
+  sector_allocations: string | null; // JSON string
+  country_allocations: string | null; // JSON string
 }
 
 /**
@@ -168,7 +168,7 @@ export const stockService = {
    * @returns Array of all stocks ordered by ticker
    */
   getAll(): Stock[] {
-    const stmt = db.prepare('SELECT * FROM stocks ORDER BY ticker');
+    const stmt = db.prepare("SELECT * FROM stocks ORDER BY ticker");
     const rows = stmt.all() as StockRow[];
     return rows.map(rowToStock);
   },
@@ -180,7 +180,7 @@ export const stockService = {
    * @returns The stock if found, null otherwise
    */
   getByTicker(ticker: string): Stock | null {
-    const stmt = db.prepare('SELECT * FROM stocks WHERE ticker = ?');
+    const stmt = db.prepare("SELECT * FROM stocks WHERE ticker = ?");
     const row = stmt.get(ticker.toUpperCase()) as StockRow | undefined;
     return row ? rowToStock(row) : null;
   },
@@ -302,7 +302,7 @@ export const stockService = {
    * @returns true if a stock was deleted, false if stock wasn't found
    */
   delete(ticker: string): boolean {
-    const stmt = db.prepare('DELETE FROM stocks WHERE ticker = ?');
+    const stmt = db.prepare("DELETE FROM stocks WHERE ticker = ?");
     const result = stmt.run(ticker.toUpperCase());
     return result.changes > 0;
   },
@@ -317,7 +317,7 @@ export const stockService = {
     const stock = this.getByTicker(ticker);
     if (!stock) return true;
 
-    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
     return stock.lastUpdated < oneHourAgo;
   },
 };

@@ -16,14 +16,19 @@ import type { PositionMetadata } from "../../types/portfolio.types";
 import { PositionRow } from "./PositionRow";
 import { AddStockDialog } from "./AddStockDialog";
 import { AddPositionDialog } from "./AddPositionDialog";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { usePortfolio } from "../../context/PortfolioContext";
 
 interface PortfolioTableProps {
   positions: PositionMetadata[];
 }
 
 export function PortfolioTable({ positions }: PortfolioTableProps) {
+  const { deleteStock } = usePortfolio();
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tickerToDelete, setTickerToDelete] = useState<string | null>(null);
 
   const handleEdit = (position: PositionMetadata) => {
     // Editing not yet implemented - would need to show list of individual positions
@@ -31,15 +36,20 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
   };
 
   const handleDelete = (ticker: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete all positions for this ticker?"
-      )
-    ) {
-      // TODO: This will need to be updated to delete individual positions
-      // For now, this is a placeholder
-      console.warn("Delete position not yet implemented", ticker);
-    }
+    setTickerToDelete(ticker);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!tickerToDelete) return;
+    await deleteStock(tickerToDelete);
+    setDeleteDialogOpen(false);
+    setTickerToDelete(null);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setTickerToDelete(null);
   };
 
   if (positions.length === 0) {
@@ -82,6 +92,19 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
         <AddPositionDialog
           open={positionDialogOpen}
           onClose={() => setPositionDialogOpen(false)}
+        />
+        <ConfirmDeleteDialog
+          open={deleteDialogOpen}
+          onClose={handleCloseDeleteDialog}
+          onConfirm={handleConfirmDelete}
+          ticker={tickerToDelete || ""}
+          stockName={
+            positions.find((p) => p.ticker === tickerToDelete)?.stock.name || ""
+          }
+          positionCount={
+            positions.find((p) => p.ticker === tickerToDelete)?.positions
+              .length || 0
+          }
         />
       </>
     );
@@ -152,6 +175,19 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
       <AddPositionDialog
         open={positionDialogOpen}
         onClose={() => setPositionDialogOpen(false)}
+      />
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        ticker={tickerToDelete || ""}
+        stockName={
+          positions.find((p) => p.ticker === tickerToDelete)?.stock.name || ""
+        }
+        positionCount={
+          positions.find((p) => p.ticker === tickerToDelete)?.positions
+            .length || 0
+        }
       />
     </>
   );

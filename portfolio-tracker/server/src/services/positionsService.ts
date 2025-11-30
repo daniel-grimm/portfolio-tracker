@@ -75,6 +75,10 @@ interface PositionWithStockRow extends PositionRow {
   style: string;
   is_domestic: number;
   last_updated: number;
+  is_etf: number;
+  description: string | null;
+  sector_allocations: string | null;
+  country_allocations: string | null;
 }
 
 /**
@@ -117,6 +121,14 @@ function rowToPositionWithStock(row: PositionWithStockRow): PositionWithStock {
       style: row.style as Stock['style'],
       isDomestic: row.is_domestic === 1,
       lastUpdated: row.last_updated,
+      isEtf: row.is_etf === 1,
+      description: row.description || undefined,
+      sectorAllocations: row.sector_allocations
+        ? JSON.parse(row.sector_allocations)
+        : undefined,
+      countryAllocations: row.country_allocations
+        ? JSON.parse(row.country_allocations)
+        : undefined,
     },
   };
 }
@@ -151,7 +163,8 @@ export const positionsService = {
       SELECT
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
-        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated
+        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
+        s.is_etf, s.description, s.sector_allocations, s.country_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       ORDER BY p.created_at DESC
@@ -172,7 +185,8 @@ export const positionsService = {
       SELECT
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
-        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated
+        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
+        s.is_etf, s.description, s.sector_allocations, s.country_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       WHERE p.ticker = ?
@@ -194,7 +208,8 @@ export const positionsService = {
       SELECT
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
-        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated
+        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
+        s.is_etf, s.description, s.sector_allocations, s.country_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       WHERE p.id = ?

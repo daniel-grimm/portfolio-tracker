@@ -59,7 +59,7 @@ export function ConfirmDeleteDialog({
       fullWidth
     >
       <DialogTitle sx={{ backgroundColor: "background.default" }}>
-        Confirm Delete Stock
+        Delete All Positions
       </DialogTitle>
       <DialogContent sx={{ backgroundColor: "background.default" }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
@@ -71,7 +71,7 @@ export function ConfirmDeleteDialog({
           {/* Stock Info */}
           <Box>
             <Typography variant="body1" gutterBottom>
-              You are about to delete:
+              You are about to delete all positions for:
             </Typography>
             <Typography variant="body2" component="div" sx={{ ml: 2 }}>
               • <strong>Stock:</strong> {ticker} - {stockName}
@@ -84,8 +84,9 @@ export function ConfirmDeleteDialog({
 
           {/* Explanation */}
           <Typography variant="body2" color="text.secondary">
-            This will remove the stock and all associated purchase positions
-            from your portfolio.
+            This will remove all purchase positions for this stock from your
+            portfolio. The stock ticker ({ticker}) will remain available in the
+            Tickers tab for future positions.
           </Typography>
 
           {/* Error Display (if any) */}

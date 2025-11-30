@@ -22,6 +22,7 @@ interface PortfolioContextType {
   addPosition: (position: Omit<Position, 'id'>) => Promise<void>;
   updatePosition: (id: string, position: Omit<Position, 'id'>) => Promise<void>;
   deletePosition: (id: string) => Promise<void>;
+  deleteAllPositionsForTicker: (ticker: string) => Promise<void>;
   refreshPositions: () => Promise<void>;
 
   // Refresh everything
@@ -165,6 +166,19 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     }
   };
 
+  const deleteAllPositionsForTicker = async (ticker: string) => {
+    try {
+      setError(null);
+      await positionsApi.deleteByTicker(ticker);
+      // Refresh aggregated positions to update display
+      await refreshPositions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete positions');
+      console.error('Error deleting positions for ticker:', err);
+      throw err;
+    }
+  };
+
   const value: PortfolioContextType = {
     aggregatedPositions,
     stocks,
@@ -177,6 +191,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     addPosition,
     updatePosition,
     deletePosition,
+    deleteAllPositionsForTicker,
     refreshPositions,
     refresh,
   };

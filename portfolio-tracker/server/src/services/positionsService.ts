@@ -307,6 +307,18 @@ export const positionsService = {
   },
 
   /**
+   * Deletes all positions for a specific ticker.
+   *
+   * @param ticker - Stock ticker symbol
+   * @returns Number of positions deleted
+   */
+  deleteAllByTicker(ticker: string): number {
+    const stmt = db.prepare('DELETE FROM positions WHERE ticker = ?');
+    const result = stmt.run(ticker.toUpperCase());
+    return result.changes;
+  },
+
+  /**
    * Gets aggregated positions (positions rolled up by ticker).
    *
    * Groups all positions by ticker and calculates:

@@ -36,4 +36,11 @@ export const positionsApi = {
     const response = await api.delete<{ success: boolean }>(`/api/positions/${id}`);
     return response.success;
   },
+
+  async deleteByTicker(ticker: string): Promise<{ success: boolean; count: number }> {
+    const response = await api.delete<{ success: boolean; count: number }>(
+      `/api/positions/ticker/${ticker}`
+    );
+    return response;
+  },
 };

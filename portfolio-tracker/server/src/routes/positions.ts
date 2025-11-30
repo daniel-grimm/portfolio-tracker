@@ -140,6 +140,27 @@ positionsRouter.put('/:id', (req: Request, res: Response) => {
   }
 });
 
+// DELETE /api/positions/ticker/:ticker - Delete all positions for a ticker
+positionsRouter.delete('/ticker/:ticker', (req: Request, res: Response) => {
+  try {
+    const { ticker } = req.params;
+    const count = positionsService.deleteAllByTicker(ticker);
+
+    if (count === 0) {
+      res.status(404).json({ error: 'No positions found for this ticker' });
+      return;
+    }
+
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('Error deleting positions for ticker:', error);
+    res.status(500).json({
+      error: 'Failed to delete positions',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // DELETE /api/positions/:id - Delete a position
 positionsRouter.delete('/:id', (req: Request, res: Response) => {
   try {

@@ -24,7 +24,7 @@ interface PortfolioTableProps {
 }
 
 export function PortfolioTable({ positions }: PortfolioTableProps) {
-  const { deleteStock } = usePortfolio();
+  const { deleteAllPositionsForTicker } = usePortfolio();
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -42,7 +42,7 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
 
   const handleConfirmDelete = async () => {
     if (!tickerToDelete) return;
-    await deleteStock(tickerToDelete);
+    await deleteAllPositionsForTicker(tickerToDelete);
     setDeleteDialogOpen(false);
     setTickerToDelete(null);
   };

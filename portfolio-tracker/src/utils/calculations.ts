@@ -114,11 +114,24 @@ export function calculateSectorAllocation(
   const sectorTotals: { [sector: string]: number } = {};
 
   enrichedPositions.forEach((position) => {
-    const sector = position.stock.sector;
-    if (!sectorTotals[sector]) {
-      sectorTotals[sector] = 0;
+    const stock = position.stock;
+
+    if (stock.isEtf && stock.sectorAllocations) {
+      // ETF: distribute value across sectors proportionally
+      Object.entries(stock.sectorAllocations).forEach(([sector, pct]) => {
+        if (!sectorTotals[sector]) {
+          sectorTotals[sector] = 0;
+        }
+        sectorTotals[sector] += position.currentValue * (pct / 100);
+      });
+    } else {
+      // Stock: add full value to single sector
+      const sector = stock.sector;
+      if (!sectorTotals[sector]) {
+        sectorTotals[sector] = 0;
+      }
+      sectorTotals[sector] += position.currentValue;
     }
-    sectorTotals[sector] += position.currentValue;
   });
 
   const sectorAllocation: SectorAllocation = {};
@@ -144,11 +157,24 @@ export function calculateGeographicAllocation(
   const countryTotals: { [country: string]: number } = {};
 
   enrichedPositions.forEach((position) => {
-    const country = position.stock.country;
-    if (!countryTotals[country]) {
-      countryTotals[country] = 0;
+    const stock = position.stock;
+
+    if (stock.isEtf && stock.countryAllocations) {
+      // ETF: distribute value across countries proportionally
+      Object.entries(stock.countryAllocations).forEach(([country, pct]) => {
+        if (!countryTotals[country]) {
+          countryTotals[country] = 0;
+        }
+        countryTotals[country] += position.currentValue * (pct / 100);
+      });
+    } else {
+      // Stock: add full value to single country
+      const country = stock.country;
+      if (!countryTotals[country]) {
+        countryTotals[country] = 0;
+      }
+      countryTotals[country] += position.currentValue;
     }
-    countryTotals[country] += position.currentValue;
   });
 
   const geoAllocation: GeographicAllocation = {};
@@ -171,9 +197,22 @@ export function calculateDomesticIntlAllocation(
     return { domestic: 0, international: 0 };
   }
 
-  const domesticValue = enrichedPositions
-    .filter((p) => p.stock.isDomestic)
-    .reduce((sum, p) => sum + p.currentValue, 0);
+  let domesticValue = 0;
+
+  enrichedPositions.forEach((position) => {
+    const stock = position.stock;
+
+    if (stock.isEtf && stock.countryAllocations) {
+      // ETF: calculate domestic portion from US allocation percentage
+      const usPercentage = stock.countryAllocations['US'] || 0;
+      domesticValue += position.currentValue * (usPercentage / 100);
+    } else {
+      // Stock: add full value if domestic
+      if (stock.isDomestic) {
+        domesticValue += position.currentValue;
+      }
+    }
+  });
 
   const internationalValue = totalValue - domesticValue;
 

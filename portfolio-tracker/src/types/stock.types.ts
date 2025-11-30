@@ -46,11 +46,30 @@ export type Sector =
   | "Communication Services";
 
 /**
+ * Sector allocation map for ETFs.
+ * Maps sector name to percentage allocation (0-100).
+ */
+export interface SectorAllocationMap {
+  [sector: string]: number;
+}
+
+/**
+ * Country allocation map for ETFs.
+ * Maps country name to percentage allocation (0-100).
+ */
+export interface CountryAllocationMap {
+  [country: string]: number;
+}
+
+/**
  * Complete snapshot of stock market data.
  *
  * This data is fetched from Finnhub API and stored with each holding as a JSON snapshot
  * in the database. Storing snapshots reduces API calls, improves performance, and
  * preserves historical data for each position.
+ *
+ * For ETFs, the optional fields (isEtf, description, sectorAllocations, countryAllocations)
+ * enable proportional allocation across multiple sectors and countries.
  */
 export interface StockData {
   /** Stock ticker symbol (e.g., "AAPL", "MSFT") */
@@ -82,6 +101,18 @@ export interface StockData {
 
   /** Unix timestamp in milliseconds when this data was last fetched from Finnhub */
   lastUpdated: number;
+
+  /** Whether this is an ETF (Exchange-Traded Fund) rather than a stock */
+  isEtf: boolean;
+
+  /** ETF description (optional, for ETFs only) */
+  description?: string;
+
+  /** Sector allocation percentages for ETFs (optional, for proportional analytics) */
+  sectorAllocations?: SectorAllocationMap;
+
+  /** Country allocation percentages for ETFs (optional, for proportional analytics) */
+  countryAllocations?: CountryAllocationMap;
 }
 
 /**

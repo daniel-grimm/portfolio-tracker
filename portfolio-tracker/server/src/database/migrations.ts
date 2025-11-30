@@ -14,6 +14,29 @@
 import type Database from 'better-sqlite3';
 
 /**
+ * Helper function to add a column to a table if it doesn't already exist.
+ * This makes migrations idempotent and safe to run multiple times.
+ *
+ * @param db - The better-sqlite3 database instance
+ * @param table - The table name
+ * @param column - The column name
+ * @param definition - The column definition (e.g., "TEXT", "INTEGER NOT NULL DEFAULT 0")
+ */
+function addColumnIfNotExists(
+  db: Database.Database,
+  table: string,
+  column: string,
+  definition: string
+): void {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  const exists = columns.some((col) => col.name === column);
+  if (!exists) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`Added column ${column} to ${table}`);
+  }
+}
+
+/**
  * Executes all database migrations to set up the schema.
  *
  * Drops old holdings table and creates new normalized schema.
@@ -90,6 +113,12 @@ export function runMigrations(db: Database.Database): void {
       FOREIGN KEY (ticker) REFERENCES stocks(ticker) ON DELETE CASCADE
     );
   `);
+
+  // Add ETF support columns to stocks table (idempotent migrations)
+  addColumnIfNotExists(db, 'stocks', 'is_etf', 'INTEGER NOT NULL DEFAULT 0');
+  addColumnIfNotExists(db, 'stocks', 'sector_allocations', 'TEXT');
+  addColumnIfNotExists(db, 'stocks', 'country_allocations', 'TEXT');
+  addColumnIfNotExists(db, 'stocks', 'description', 'TEXT');
 
   console.log('Database migrations completed successfully');
 }

@@ -28,8 +28,27 @@ export type Sector =
   | "Communication Services";
 
 /**
+ * Sector allocation map for ETFs.
+ * Maps sector name to percentage allocation (0-100).
+ */
+export interface SectorAllocationMap {
+  [sector: string]: number;
+}
+
+/**
+ * Country allocation map for ETFs.
+ * Maps country name to percentage allocation (0-100).
+ */
+export interface CountryAllocationMap {
+  [country: string]: number;
+}
+
+/**
  * Stock data (single record per ticker).
  * This is the API/application format using camelCase naming.
+ *
+ * For ETFs, the optional fields (isEtf, description, sectorAllocations, countryAllocations)
+ * enable proportional allocation across multiple sectors and countries.
  */
 export interface Stock {
   ticker: string;
@@ -42,6 +61,10 @@ export interface Stock {
   style: Style;
   isDomestic: boolean;
   lastUpdated: number;
+  isEtf: boolean;
+  description?: string;
+  sectorAllocations?: SectorAllocationMap;
+  countryAllocations?: CountryAllocationMap;
 }
 
 /**
@@ -63,6 +86,10 @@ interface StockRow {
   is_domestic: number;  // SQLite stores booleans as 0/1
   last_updated: number;
   created_at: number;
+  is_etf: number;  // SQLite stores booleans as 0/1
+  description: string | null;
+  sector_allocations: string | null;  // JSON string
+  country_allocations: string | null;  // JSON string
 }
 
 /**
@@ -70,6 +97,7 @@ interface StockRow {
  *
  * Transforms snake_case column names to camelCase property names
  * and converts SQLite's 0/1 integers to booleans.
+ * Parses JSON strings for sector and country allocations.
  *
  * @param row - Raw database row from stocks table
  * @returns Stock object with typed properties
@@ -86,6 +114,14 @@ function rowToStock(row: StockRow): Stock {
     style: row.style as Style,
     isDomestic: row.is_domestic === 1,
     lastUpdated: row.last_updated,
+    isEtf: row.is_etf === 1,
+    description: row.description || undefined,
+    sectorAllocations: row.sector_allocations
+      ? JSON.parse(row.sector_allocations)
+      : undefined,
+    countryAllocations: row.country_allocations
+      ? JSON.parse(row.country_allocations)
+      : undefined,
   };
 }
 
@@ -94,6 +130,7 @@ function rowToStock(row: StockRow): Stock {
  *
  * Transforms camelCase property names to snake_case column names
  * and converts booleans to SQLite's 0/1 integers.
+ * Stringifies JSON objects for sector and country allocations.
  *
  * @param stock - Stock object
  * @returns Object ready for database insertion/update
@@ -110,6 +147,14 @@ function stockToRow(stock: Stock) {
     style: stock.style,
     is_domestic: stock.isDomestic ? 1 : 0,
     last_updated: stock.lastUpdated,
+    is_etf: stock.isEtf ? 1 : 0,
+    description: stock.description || null,
+    sector_allocations: stock.sectorAllocations
+      ? JSON.stringify(stock.sectorAllocations)
+      : null,
+    country_allocations: stock.countryAllocations
+      ? JSON.stringify(stock.countryAllocations)
+      : null,
   };
 }
 
@@ -155,9 +200,10 @@ export const stockService = {
     const stmt = db.prepare(`
       INSERT INTO stocks (
         ticker, name, current_price, annual_dividend,
-        sector, country, market_cap, style, is_domestic, last_updated
+        sector, country, market_cap, style, is_domestic, last_updated,
+        is_etf, description, sector_allocations, country_allocations
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(ticker) DO UPDATE SET
         name = excluded.name,
         current_price = excluded.current_price,
@@ -167,7 +213,11 @@ export const stockService = {
         market_cap = excluded.market_cap,
         style = excluded.style,
         is_domestic = excluded.is_domestic,
-        last_updated = excluded.last_updated
+        last_updated = excluded.last_updated,
+        is_etf = excluded.is_etf,
+        description = excluded.description,
+        sector_allocations = excluded.sector_allocations,
+        country_allocations = excluded.country_allocations
     `);
 
     stmt.run(
@@ -180,7 +230,11 @@ export const stockService = {
       rowData.market_cap,
       rowData.style,
       rowData.is_domestic,
-      rowData.last_updated
+      rowData.last_updated,
+      rowData.is_etf,
+      rowData.description,
+      rowData.sector_allocations,
+      rowData.country_allocations
     );
 
     return stock;
@@ -211,7 +265,11 @@ export const stockService = {
           market_cap = ?,
           style = ?,
           is_domestic = ?,
-          last_updated = ?
+          last_updated = ?,
+          is_etf = ?,
+          description = ?,
+          sector_allocations = ?,
+          country_allocations = ?
       WHERE ticker = ?
     `);
 
@@ -225,6 +283,10 @@ export const stockService = {
       rowData.style,
       rowData.is_domestic,
       rowData.last_updated,
+      rowData.is_etf,
+      rowData.description,
+      rowData.sector_allocations,
+      rowData.country_allocations,
       ticker.toUpperCase()
     );
 

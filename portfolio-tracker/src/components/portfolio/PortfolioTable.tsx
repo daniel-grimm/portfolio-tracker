@@ -16,14 +16,12 @@ import type { PositionMetadata } from "../../types/portfolio.types";
 import { PositionRow } from "./PositionRow";
 import { AddStockDialog } from "./AddStockDialog";
 import { AddPositionDialog } from "./AddPositionDialog";
-import { usePortfolio } from "../../context/PortfolioContext";
 
 interface PortfolioTableProps {
   positions: PositionMetadata[];
 }
 
 export function PortfolioTable({ positions }: PortfolioTableProps) {
-  const { deletePosition } = usePortfolio();
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
 

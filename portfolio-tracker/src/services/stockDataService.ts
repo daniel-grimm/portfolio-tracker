@@ -57,6 +57,7 @@ export async function getStockData(
       style: userClassification.style,
       isDomestic,
       lastUpdated: Date.now(),
+      isEtf: false, // This service is for stocks only
     };
 
     return stockData;

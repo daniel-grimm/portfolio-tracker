@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { holdingsRouter } from './routes/holdings.js';
+import { stocksRouter } from './routes/stocks.js';
+import { positionsRouter } from './routes/positions.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -18,7 +19,8 @@ app.use(cors({
 app.use(express.json());
 
 // Routes
-app.use('/api/holdings', holdingsRouter);
+app.use('/api/stocks', stocksRouter);
+app.use('/api/positions', positionsRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

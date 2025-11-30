@@ -1,14 +1,14 @@
 import type {
-  HoldingMetadata,
+  PositionMetadata,
   StyleBoxAllocation,
 } from "../types/portfolio.types";
 import type { MarketCap, Style } from "../types/stock.types";
 
 export function calculateStyleBoxAllocation(
-  enrichedHoldings: HoldingMetadata[]
+  enrichedPositions: PositionMetadata[]
 ): StyleBoxAllocation {
-  const totalValue = enrichedHoldings.reduce(
-    (sum, h) => sum + h.currentValue,
+  const totalValue = enrichedPositions.reduce(
+    (sum, p) => sum + p.currentValue,
     0
   );
 
@@ -28,10 +28,10 @@ export function calculateStyleBoxAllocation(
     return allocation;
   }
 
-  enrichedHoldings.forEach((holding) => {
-    const { marketCap, style } = holding.stockData;
+  enrichedPositions.forEach((position) => {
+    const { marketCap, style } = position.stock;
     const key = getStyleBoxKey(marketCap, style);
-    allocation[key] += holding.currentValue;
+    allocation[key] += position.currentValue;
   });
 
   // Convert to percentages

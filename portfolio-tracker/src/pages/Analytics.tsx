@@ -11,17 +11,17 @@ export function Analytics() {
     sectorAllocation,
     geographicAllocation,
     domesticIntlAllocation,
-    enrichedHoldings,
+    enrichedPositions,
   } = useCalculations();
 
-  if (enrichedHoldings.length === 0) {
+  if (enrichedPositions.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 8 }}>
         <Typography variant="h5" color="text.secondary" gutterBottom>
           No Portfolio Data
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Add some holdings to your portfolio to see analytics
+          Add stocks and positions to your portfolio to see analytics
         </Typography>
       </Box>
     );

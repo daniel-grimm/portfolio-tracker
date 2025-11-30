@@ -2,14 +2,13 @@
  * Database schema migrations for the portfolio tracker.
  *
  * This file defines the SQLite database schema and handles automated migration
- * execution on server startup. Currently uses a simple migration approach
- * suitable for single-table applications.
+ * execution on server startup.
  *
  * Schema Design:
- * - Single table 'holdings' stores all user stock positions
- * - Stock market data is denormalized and stored as JSON for simplicity
- * - UUID strings used for primary keys (better for distributed systems)
- * - Idempotent migrations using CREATE TABLE IF NOT EXISTS
+ * - 'stocks' table: Single source of truth for stock market data (one row per ticker)
+ * - 'positions' table: Individual purchases/lots (many rows per ticker)
+ * - Normalized design with foreign key relationships
+ * - UUID strings used for position IDs
  */
 
 import type Database from 'better-sqlite3';
@@ -17,46 +16,78 @@ import type Database from 'better-sqlite3';
 /**
  * Executes all database migrations to set up the schema.
  *
- * This function is safe to run multiple times - it uses CREATE TABLE IF NOT EXISTS
- * to avoid errors when the schema already exists. Migrations are automatically
- * executed when the database connection is initialized.
+ * Drops old holdings table and creates new normalized schema.
+ * Migrations are automatically executed when the database connection is initialized.
  *
  * @param db - The better-sqlite3 database instance
  */
 export function runMigrations(db: Database.Database): void {
-  // Create holdings table
-  // This table stores user stock positions with embedded market data snapshots
+  // Drop old holdings table (data deletion approved by user)
+  db.exec('DROP TABLE IF EXISTS holdings');
+
+  // Create stocks table - single source of truth for market data
   db.exec(`
-    CREATE TABLE IF NOT EXISTS holdings (
-      -- UUID primary key for unique holding identification
-      -- Stored as TEXT since SQLite doesn't have a native UUID type
+    CREATE TABLE IF NOT EXISTS stocks (
+      -- Stock ticker symbol (primary key, e.g., "AAPL", "MSFT")
+      ticker TEXT PRIMARY KEY,
+
+      -- Company name (e.g., "Apple Inc.")
+      name TEXT NOT NULL,
+
+      -- Current market price in USD
+      current_price REAL NOT NULL,
+
+      -- Annual dividend payment per share in USD
+      annual_dividend REAL NOT NULL DEFAULT 0,
+
+      -- Industry sector (e.g., "Technology", "Healthcare")
+      sector TEXT NOT NULL,
+
+      -- Country of headquarters
+      country TEXT NOT NULL,
+
+      -- Market cap classification (mega/large/mid/small/micro)
+      market_cap TEXT NOT NULL,
+
+      -- Investment style (value/blend/growth)
+      style TEXT NOT NULL,
+
+      -- Whether this is a US domestic company (1 = true, 0 = false)
+      is_domestic INTEGER NOT NULL DEFAULT 1,
+
+      -- Unix timestamp in milliseconds when stock data was last updated
+      last_updated INTEGER NOT NULL,
+
+      -- Unix timestamp in seconds when stock was created
+      created_at INTEGER DEFAULT (unixepoch())
+    );
+  `);
+
+  // Create positions table - individual purchases/lots
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS positions (
+      -- UUID primary key for unique position identification
       id TEXT PRIMARY KEY,
 
-      -- Stock ticker symbol (e.g., "AAPL", "MSFT")
+      -- Foreign key to stocks table
       ticker TEXT NOT NULL,
 
-      -- Number of shares owned
-      -- Stored as REAL (floating-point) to support fractional shares
-      quantity REAL NOT NULL,
+      -- Number of shares in this position
+      -- Stored as REAL to support fractional shares
+      quantity REAL NOT NULL CHECK(quantity > 0),
 
-      -- Average purchase price per share in USD
-      -- Stored as REAL for precise decimal values
-      cost_basis REAL NOT NULL,
+      -- Purchase price per share for this position in USD
+      cost_basis REAL NOT NULL CHECK(cost_basis > 0),
 
-      -- Optional purchase date in ISO 8601 format (YYYY-MM-DD)
-      -- NULL if purchase date is not tracked
+      -- Purchase date in ISO 8601 format (YYYY-MM-DD), optional
       purchase_date TEXT,
 
-      -- JSON snapshot of stock market data (StockData interface)
-      -- Stored as TEXT because SQLite doesn't have a native JSON type
-      -- This includes: ticker, name, currentPrice, annualDividend, sector,
-      -- country, marketCap, style, isDomestic, lastUpdated
-      -- Stored with holdings to reduce API calls and preserve historical data
-      stock_data_snapshot TEXT NOT NULL,
+      -- Unix timestamp in seconds when position was created
+      created_at INTEGER DEFAULT (unixepoch()),
 
-      -- Unix timestamp in seconds when this holding was created
-      -- Auto-populated by SQLite's unixepoch() function
-      created_at INTEGER DEFAULT (unixepoch())
+      -- Foreign key constraint
+      -- ON DELETE CASCADE: if stock is deleted, all its positions are deleted
+      FOREIGN KEY (ticker) REFERENCES stocks(ticker) ON DELETE CASCADE
     );
   `);
 

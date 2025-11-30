@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { usePortfolio } from "../context/PortfolioContext";
 import type {
-  HoldingMetadata,
+  PositionMetadata,
   PortfolioMetrics,
   SectorAllocation,
   GeographicAllocation,
@@ -9,7 +9,7 @@ import type {
   StyleBoxAllocation,
 } from "../types/portfolio.types";
 import {
-  enrichHolding,
+  enrichPosition,
   calculatePortfolioMetrics,
   calculateSectorAllocation,
   calculateGeographicAllocation,
@@ -18,36 +18,36 @@ import {
 import { calculateStyleBoxAllocation } from "../utils/styleBoxClassifier";
 
 export function useCalculations() {
-  const { holdings } = usePortfolio();
+  const { aggregatedPositions } = usePortfolio();
 
-  const enrichedHoldings = useMemo<HoldingMetadata[]>(() => {
-    return holdings
-      .map((holding) => enrichHolding(holding))
-      .filter((h): h is HoldingMetadata => h !== null);
-  }, [holdings]);
+  const enrichedPositions = useMemo<PositionMetadata[]>(() => {
+    return aggregatedPositions
+      .map((position) => enrichPosition(position))
+      .filter((p): p is PositionMetadata => p !== null);
+  }, [aggregatedPositions]);
 
   const portfolioMetrics = useMemo<PortfolioMetrics>(() => {
-    return calculatePortfolioMetrics(enrichedHoldings);
-  }, [enrichedHoldings]);
+    return calculatePortfolioMetrics(enrichedPositions);
+  }, [enrichedPositions]);
 
   const sectorAllocation = useMemo<SectorAllocation>(() => {
-    return calculateSectorAllocation(enrichedHoldings);
-  }, [enrichedHoldings]);
+    return calculateSectorAllocation(enrichedPositions);
+  }, [enrichedPositions]);
 
   const geographicAllocation = useMemo<GeographicAllocation>(() => {
-    return calculateGeographicAllocation(enrichedHoldings);
-  }, [enrichedHoldings]);
+    return calculateGeographicAllocation(enrichedPositions);
+  }, [enrichedPositions]);
 
   const domesticIntlAllocation = useMemo<DomesticIntlAllocation>(() => {
-    return calculateDomesticIntlAllocation(enrichedHoldings);
-  }, [enrichedHoldings]);
+    return calculateDomesticIntlAllocation(enrichedPositions);
+  }, [enrichedPositions]);
 
   const styleBoxAllocation = useMemo<StyleBoxAllocation>(() => {
-    return calculateStyleBoxAllocation(enrichedHoldings);
-  }, [enrichedHoldings]);
+    return calculateStyleBoxAllocation(enrichedPositions);
+  }, [enrichedPositions]);
 
   return {
-    enrichedHoldings,
+    enrichedPositions,
     portfolioMetrics,
     sectorAllocation,
     geographicAllocation,

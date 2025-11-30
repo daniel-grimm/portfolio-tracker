@@ -1,38 +1,37 @@
 import type {
-  Holding,
-  HoldingMetadata,
+  AggregatedPosition,
+  PositionMetadata,
   PortfolioMetrics,
   SectorAllocation,
   GeographicAllocation,
   DomesticIntlAllocation,
 } from "../types/portfolio.types";
 
-export function enrichHolding(holding: Holding): HoldingMetadata | null {
-  // Use the stock data snapshot stored with the holding
-  const stockData = holding.stockDataSnapshot;
+export function enrichPosition(position: AggregatedPosition): PositionMetadata | null {
+  // Stock data is already attached to the aggregated position
+  const stock = position.stock;
 
-  if (!stockData) {
-    console.error(`Stock data snapshot not found for holding: ${holding.ticker}`);
+  if (!stock) {
+    console.error(`Stock data not found for position: ${position.ticker}`);
     return null;
   }
 
-  const currentValue = holding.quantity * stockData.currentPrice;
-  const totalCost = holding.quantity * holding.costBasis;
+  const currentValue = position.totalQuantity * stock.currentPrice;
+  const totalCost = position.totalQuantity * position.weightedAverageCostBasis;
   const gainLoss = currentValue - totalCost;
   const gainLossPercent = totalCost > 0 ? (gainLoss / totalCost) * 100 : 0;
   const dividendYield =
-    stockData.currentPrice > 0
-      ? (stockData.annualDividend / stockData.currentPrice) * 100
+    stock.currentPrice > 0
+      ? (stock.annualDividend / stock.currentPrice) * 100
       : 0;
   const yieldOnCost =
-    holding.costBasis > 0
-      ? (stockData.annualDividend / holding.costBasis) * 100
+    position.weightedAverageCostBasis > 0
+      ? (stock.annualDividend / position.weightedAverageCostBasis) * 100
       : 0;
-  const annualIncome = holding.quantity * stockData.annualDividend;
+  const annualIncome = position.totalQuantity * stock.annualDividend;
 
   return {
-    ...holding,
-    stockData,
+    ...position,
     currentValue,
     totalCost,
     gainLoss,
@@ -44,9 +43,9 @@ export function enrichHolding(holding: Holding): HoldingMetadata | null {
 }
 
 export function calculatePortfolioMetrics(
-  enrichedHoldings: HoldingMetadata[]
+  enrichedPositions: PositionMetadata[]
 ): PortfolioMetrics {
-  if (enrichedHoldings.length === 0) {
+  if (enrichedPositions.length === 0) {
     return {
       totalValue: 0,
       totalCost: 0,
@@ -58,24 +57,24 @@ export function calculatePortfolioMetrics(
     };
   }
 
-  const totalValue = enrichedHoldings.reduce(
-    (sum, h) => sum + h.currentValue,
+  const totalValue = enrichedPositions.reduce(
+    (sum, p) => sum + p.currentValue,
     0
   );
-  const totalCost = enrichedHoldings.reduce((sum, h) => sum + h.totalCost, 0);
+  const totalCost = enrichedPositions.reduce((sum, p) => sum + p.totalCost, 0);
   const totalGainLoss = totalValue - totalCost;
   const totalGainLossPercent =
     totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
-  const totalAnnualIncome = enrichedHoldings.reduce(
-    (sum, h) => sum + h.annualIncome,
+  const totalAnnualIncome = enrichedPositions.reduce(
+    (sum, p) => sum + p.annualIncome,
     0
   );
 
   // Weighted average dividend yield
   const averageDividendYield =
     totalValue > 0
-      ? enrichedHoldings.reduce(
-          (sum, h) => sum + h.dividendYield * h.currentValue,
+      ? enrichedPositions.reduce(
+          (sum, p) => sum + p.dividendYield * p.currentValue,
           0
         ) / totalValue
       : 0;
@@ -83,8 +82,8 @@ export function calculatePortfolioMetrics(
   // Weighted average yield on cost
   const averageYieldOnCost =
     totalValue > 0
-      ? enrichedHoldings.reduce(
-          (sum, h) => sum + h.yieldOnCost * h.currentValue,
+      ? enrichedPositions.reduce(
+          (sum, p) => sum + p.yieldOnCost * p.currentValue,
           0
         ) / totalValue
       : 0;
@@ -101,10 +100,10 @@ export function calculatePortfolioMetrics(
 }
 
 export function calculateSectorAllocation(
-  enrichedHoldings: HoldingMetadata[]
+  enrichedPositions: PositionMetadata[]
 ): SectorAllocation {
-  const totalValue = enrichedHoldings.reduce(
-    (sum, h) => sum + h.currentValue,
+  const totalValue = enrichedPositions.reduce(
+    (sum, p) => sum + p.currentValue,
     0
   );
 
@@ -114,12 +113,12 @@ export function calculateSectorAllocation(
 
   const sectorTotals: { [sector: string]: number } = {};
 
-  enrichedHoldings.forEach((holding) => {
-    const sector = holding.stockData.sector;
+  enrichedPositions.forEach((position) => {
+    const sector = position.stock.sector;
     if (!sectorTotals[sector]) {
       sectorTotals[sector] = 0;
     }
-    sectorTotals[sector] += holding.currentValue;
+    sectorTotals[sector] += position.currentValue;
   });
 
   const sectorAllocation: SectorAllocation = {};
@@ -131,10 +130,10 @@ export function calculateSectorAllocation(
 }
 
 export function calculateGeographicAllocation(
-  enrichedHoldings: HoldingMetadata[]
+  enrichedPositions: PositionMetadata[]
 ): GeographicAllocation {
-  const totalValue = enrichedHoldings.reduce(
-    (sum, h) => sum + h.currentValue,
+  const totalValue = enrichedPositions.reduce(
+    (sum, p) => sum + p.currentValue,
     0
   );
 
@@ -144,12 +143,12 @@ export function calculateGeographicAllocation(
 
   const countryTotals: { [country: string]: number } = {};
 
-  enrichedHoldings.forEach((holding) => {
-    const country = holding.stockData.country;
+  enrichedPositions.forEach((position) => {
+    const country = position.stock.country;
     if (!countryTotals[country]) {
       countryTotals[country] = 0;
     }
-    countryTotals[country] += holding.currentValue;
+    countryTotals[country] += position.currentValue;
   });
 
   const geoAllocation: GeographicAllocation = {};
@@ -161,10 +160,10 @@ export function calculateGeographicAllocation(
 }
 
 export function calculateDomesticIntlAllocation(
-  enrichedHoldings: HoldingMetadata[]
+  enrichedPositions: PositionMetadata[]
 ): DomesticIntlAllocation {
-  const totalValue = enrichedHoldings.reduce(
-    (sum, h) => sum + h.currentValue,
+  const totalValue = enrichedPositions.reduce(
+    (sum, p) => sum + p.currentValue,
     0
   );
 
@@ -172,9 +171,9 @@ export function calculateDomesticIntlAllocation(
     return { domestic: 0, international: 0 };
   }
 
-  const domesticValue = enrichedHoldings
-    .filter((h) => h.stockData.isDomestic)
-    .reduce((sum, h) => sum + h.currentValue, 0);
+  const domesticValue = enrichedPositions
+    .filter((p) => p.stock.isDomestic)
+    .reduce((sum, p) => sum + p.currentValue, 0);
 
   const internationalValue = totalValue - domesticValue;
 

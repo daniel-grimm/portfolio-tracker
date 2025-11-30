@@ -5,7 +5,7 @@ import { PortfolioTable } from '../components/portfolio/PortfolioTable';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
 export function Dashboard() {
-  const { enrichedHoldings, portfolioMetrics } = useCalculations();
+  const { enrichedPositions, portfolioMetrics } = useCalculations();
 
   const getGainLossColor = (value: number) => {
     if (value > 0) return 'success';
@@ -51,7 +51,7 @@ export function Dashboard() {
           value={formatPercent(portfolioMetrics.averageYieldOnCost)}
         />
       </Box>
-      <PortfolioTable holdings={enrichedHoldings} />
+      <PortfolioTable positions={enrichedPositions} />
     </Box>
   );
 }

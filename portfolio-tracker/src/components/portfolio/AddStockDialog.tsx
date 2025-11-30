@@ -17,64 +17,55 @@ import {
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { usePortfolio } from "../../context/PortfolioContext";
-import type { HoldingMetadata } from "../../types/portfolio.types";
-import type { StockData, Sector, Style } from "../../types/stock.types";
-import { getStockData } from "../../services/stockDataService";
+import type { Stock, Sector, Style } from "../../types/stock.types";
+import { fetchStockQuote, fetchCompanyProfile } from "../../services/finnhubService";
+import { classifyMarketCap } from "../../services/stockDataService";
 import { SECTORS, STYLES } from "../../data/constants";
 
-interface AddHoldingDialogProps {
+interface AddStockDialogProps {
   open: boolean;
   onClose: () => void;
-  editingHolding: HoldingMetadata | null;
 }
 
-export function AddHoldingDialog({
-  open,
-  onClose,
-  editingHolding,
-}: AddHoldingDialogProps) {
-  const { addHolding, updateHolding } = usePortfolio();
+export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
+  const { addStock } = usePortfolio();
 
   // Form fields
   const [ticker, setTicker] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [costBasis, setCostBasis] = useState("");
   const [sector, setSector] = useState<Sector | "">("");
   const [style, setStyle] = useState<Style | "">("");
   const [annualDividend, setAnnualDividend] = useState("");
 
+  // Fetched data
+  const [companyName, setCompanyName] = useState("");
+  const [currentPrice, setCurrentPrice] = useState("");
+  const [country, setCountry] = useState("");
+  const [marketCap, setMarketCap] = useState("");
+
   // API fetch state
-  const [fetchedStockData, setFetchedStockData] = useState<StockData | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
+  const [stockFetched, setStockFetched] = useState(false);
 
   // Form validation
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    if (editingHolding) {
-      setTicker(editingHolding.ticker);
-      setQuantity(editingHolding.quantity.toString());
-      setCostBasis(editingHolding.costBasis.toString());
-      setFetchedStockData(editingHolding.stockDataSnapshot);
-      setSector(editingHolding.stockDataSnapshot.sector);
-      setStyle(editingHolding.stockDataSnapshot.style);
-      setAnnualDividend(editingHolding.stockDataSnapshot.annualDividend.toString());
-    } else {
+    if (!open) {
       resetForm();
     }
-    setErrors({});
-    setFetchError("");
-  }, [editingHolding, open]);
+  }, [open]);
 
   const resetForm = () => {
     setTicker("");
-    setQuantity("");
-    setCostBasis("");
     setSector("");
     setStyle("");
     setAnnualDividend("0");
-    setFetchedStockData(null);
+    setCompanyName("");
+    setCurrentPrice("");
+    setCountry("");
+    setMarketCap("");
+    setStockFetched(false);
     setFetchError("");
     setErrors({});
   };
@@ -87,18 +78,33 @@ export function AddHoldingDialog({
 
     setLoading(true);
     setFetchError("");
-    setFetchedStockData(null);
+    setStockFetched(false);
 
     try {
-      // Fetch stock data with default user classification (will be updated by user)
-      const stockData = await getStockData(ticker.trim().toUpperCase(), {
-        sector: sector || "Technology", // Temporary default
-        style: style || "blend", // Temporary default
-        annualDividend: parseFloat(annualDividend) || 0,
-      });
+      const normalizedTicker = ticker.trim().toUpperCase();
 
-      setFetchedStockData(stockData);
-      setTicker(stockData.ticker); // Use normalized ticker from API
+      // Fetch data from Finnhub API
+      const [quote, profile] = await Promise.all([
+        fetchStockQuote(normalizedTicker),
+        fetchCompanyProfile(normalizedTicker)
+      ]);
+
+      // Set fetched data
+      setTicker(normalizedTicker);
+      setCompanyName(profile.name);
+      setCurrentPrice(quote.c.toFixed(2));
+      setCountry(profile.country);
+      setMarketCap(classifyMarketCap(profile.marketCapitalization));
+
+      // Auto-populate sector from industry if available
+      // Map Finnhub industry to our sector categories
+      const industry = profile.industry || "";
+      const mappedSector = mapIndustryToSector(industry);
+      if (mappedSector) {
+        setSector(mappedSector);
+      }
+
+      setStockFetched(true);
       setFetchError("");
     } catch (error) {
       if (error instanceof Error) {
@@ -106,16 +112,47 @@ export function AddHoldingDialog({
       } else {
         setFetchError("Failed to fetch stock data. Please check the ticker symbol.");
       }
-      setFetchedStockData(null);
+      setStockFetched(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // Map Finnhub industry to our sector categories
+  const mapIndustryToSector = (industry: string): Sector | null => {
+    const industryLower = industry.toLowerCase();
+
+    if (industryLower.includes("tech") || industryLower.includes("software") || industryLower.includes("internet")) {
+      return "Technology";
+    } else if (industryLower.includes("health") || industryLower.includes("pharma") || industryLower.includes("bio")) {
+      return "Healthcare";
+    } else if (industryLower.includes("finance") || industryLower.includes("bank") || industryLower.includes("insurance")) {
+      return "Financials";
+    } else if (industryLower.includes("consumer") && industryLower.includes("discretionary")) {
+      return "Consumer Discretionary";
+    } else if (industryLower.includes("consumer") && industryLower.includes("staples")) {
+      return "Consumer Staples";
+    } else if (industryLower.includes("energy") || industryLower.includes("oil") || industryLower.includes("gas")) {
+      return "Energy";
+    } else if (industryLower.includes("utility") || industryLower.includes("utilities")) {
+      return "Utilities";
+    } else if (industryLower.includes("real estate") || industryLower.includes("reit")) {
+      return "Real Estate";
+    } else if (industryLower.includes("material") || industryLower.includes("mining") || industryLower.includes("chemical")) {
+      return "Materials";
+    } else if (industryLower.includes("industrial") || industryLower.includes("manufacturing")) {
+      return "Industrials";
+    } else if (industryLower.includes("communication") || industryLower.includes("telecom") || industryLower.includes("media")) {
+      return "Communication Services";
+    }
+
+    return null; // User will need to select manually
+  };
+
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!fetchedStockData && !editingHolding) {
+    if (!stockFetched) {
       newErrors.fetch = "Please fetch stock data before submitting";
     }
 
@@ -125,16 +162,6 @@ export function AddHoldingDialog({
 
     if (!style) {
       newErrors.style = "Please select a style";
-    }
-
-    const quantityNum = parseFloat(quantity);
-    if (!quantity || isNaN(quantityNum) || quantityNum <= 0) {
-      newErrors.quantity = "Quantity must be greater than 0";
-    }
-
-    const costBasisNum = parseFloat(costBasis);
-    if (!costBasis || isNaN(costBasisNum) || costBasisNum <= 0) {
-      newErrors.costBasis = "Cost basis must be greater than 0";
     }
 
     const dividendNum = parseFloat(annualDividend);
@@ -151,48 +178,29 @@ export function AddHoldingDialog({
       return;
     }
 
-    // If editing, we already have the stock data snapshot
-    let stockDataSnapshot = fetchedStockData;
-
-    // If adding new holding, fetch fresh data with user's classification
-    if (!editingHolding && sector && style) {
-      try {
-        setLoading(true);
-        stockDataSnapshot = await getStockData(ticker.trim().toUpperCase(), {
-          sector,
-          style,
-          annualDividend: parseFloat(annualDividend) || 0,
-        });
-      } catch (error) {
-        if (error instanceof Error) {
-          setFetchError(error.message);
-        }
-        setLoading(false);
-        return;
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (!stockDataSnapshot) {
-      setFetchError("Unable to create holding without stock data");
-      return;
-    }
-
-    const holdingData = {
-      ticker: stockDataSnapshot.ticker,
-      quantity: parseFloat(quantity),
-      costBasis: parseFloat(costBasis),
-      stockDataSnapshot,
+    const stock: Stock = {
+      ticker: ticker.toUpperCase(),
+      name: companyName,
+      currentPrice: parseFloat(currentPrice),
+      annualDividend: parseFloat(annualDividend) || 0,
+      sector: sector as Sector,
+      country,
+      marketCap: marketCap as any,
+      style: style as Style,
+      isDomestic: country === "US",
+      lastUpdated: Date.now(),
     };
 
-    if (editingHolding) {
-      updateHolding(editingHolding.id, holdingData);
-    } else {
-      addHolding(holdingData);
+    try {
+      await addStock(stock);
+      handleClose();
+    } catch (error) {
+      if (error instanceof Error) {
+        setFetchError(error.message);
+      } else {
+        setFetchError("Failed to add stock");
+      }
     }
-
-    handleClose();
   };
 
   const handleClose = () => {
@@ -202,9 +210,7 @@ export function AddHoldingDialog({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {editingHolding ? "Edit Holding" : "Add New Holding"}
-      </DialogTitle>
+      <DialogTitle>Add New Stock</DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
           {/* Ticker Input with Fetch Button */}
@@ -217,19 +223,16 @@ export function AddHoldingDialog({
               helperText={errors.ticker}
               required
               fullWidth
-              disabled={!!editingHolding}
               placeholder="e.g., AAPL"
             />
-            {!editingHolding && (
-              <Button
-                variant="outlined"
-                onClick={handleFetchStockData}
-                disabled={loading || !ticker.trim()}
-                sx={{ minWidth: "120px" }}
-              >
-                {loading ? <CircularProgress size={24} /> : "Fetch Data"}
-              </Button>
-            )}
+            <Button
+              variant="outlined"
+              onClick={handleFetchStockData}
+              disabled={loading || !ticker.trim()}
+              sx={{ minWidth: "120px" }}
+            >
+              {loading ? <CircularProgress size={24} /> : "Fetch Data"}
+            </Button>
           </Box>
 
           {/* Error Display */}
@@ -245,7 +248,7 @@ export function AddHoldingDialog({
           )}
 
           {/* Fetched Stock Info Display */}
-          {fetchedStockData && (
+          {stockFetched && (
             <Box
               sx={{
                 p: 2,
@@ -259,16 +262,16 @@ export function AddHoldingDialog({
                 Stock Information
               </Typography>
               <Typography variant="body2">
-                <strong>Company:</strong> {fetchedStockData.name}
+                <strong>Company:</strong> {companyName}
               </Typography>
               <Typography variant="body2">
-                <strong>Current Price:</strong> ${fetchedStockData.currentPrice.toFixed(2)}
+                <strong>Current Price:</strong> ${currentPrice}
               </Typography>
               <Typography variant="body2">
-                <strong>Market Cap:</strong> {fetchedStockData.marketCap.toUpperCase()}
+                <strong>Market Cap:</strong> {marketCap.toUpperCase()}
               </Typography>
               <Typography variant="body2">
-                <strong>Country:</strong> {fetchedStockData.country}
+                <strong>Country:</strong> {country}
               </Typography>
             </Box>
           )}
@@ -317,30 +320,6 @@ export function AddHoldingDialog({
             helperText={errors.annualDividend || "Enter 0 if the stock doesn't pay dividends"}
             inputProps={{ min: 0, step: 0.01 }}
           />
-
-          {/* Quantity */}
-          <TextField
-            label="Quantity (Shares)"
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            error={!!errors.quantity}
-            helperText={errors.quantity}
-            required
-            inputProps={{ min: 0, step: 0.001 }}
-          />
-
-          {/* Cost Basis */}
-          <TextField
-            label="Cost Basis (Price per Share)"
-            type="number"
-            value={costBasis}
-            onChange={(e) => setCostBasis(e.target.value)}
-            error={!!errors.costBasis}
-            helperText={errors.costBasis}
-            required
-            inputProps={{ min: 0, step: 0.01 }}
-          />
         </Box>
       </DialogContent>
       <DialogActions>
@@ -348,7 +327,7 @@ export function AddHoldingDialog({
           Cancel
         </Button>
         <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={24} /> : editingHolding ? "Update" : "Add"}
+          {loading ? <CircularProgress size={24} /> : "Add Stock"}
         </Button>
       </DialogActions>
     </Dialog>

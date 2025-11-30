@@ -1,5 +1,5 @@
 /**
- * Portfolio and holding type definitions.
+ * Portfolio and position type definitions.
  *
  * These types represent the core data model for tracking stock positions,
  * calculating portfolio analytics, and displaying performance metrics.
@@ -7,58 +7,92 @@
 
 import type { StockData } from "./stock.types";
 
+// Stock type alias (matches backend nomenclature)
+export type Stock = StockData;
+
 /**
- * A single stock holding in the user's portfolio.
+ * Individual position (purchase).
  *
- * Represents both the position details (quantity, cost basis) and a snapshot
- * of the stock's market data at the time of last update. This is the core data
- * model stored in the SQLite database.
+ * Represents a single purchase of a stock at a specific price and date.
+ * Multiple positions can exist for the same ticker.
  */
-export interface Holding {
-  /** Unique identifier (UUID) for this holding */
+export interface Position {
+  /** Unique identifier (UUID) for this position */
   id: string;
 
   /** Stock ticker symbol (e.g., "AAPL", "MSFT") */
   ticker: string;
 
-  /** Number of shares owned (supports fractional shares) */
+  /** Number of shares in this position (supports fractional shares) */
   quantity: number;
 
-  /** Average purchase price per share in USD */
+  /** Purchase price per share for this position in USD */
   costBasis: number;
 
   /** Optional purchase date in ISO 8601 format (YYYY-MM-DD) */
   purchaseDate?: string;
-
-  /** Snapshot of stock market data stored with this holding */
-  stockDataSnapshot: StockData;
 }
 
 /**
- * Portfolio container holding all user positions.
+ * Position with stock data attached.
  *
- * Simple collection of holdings that can be used to calculate
- * aggregate portfolio metrics and analytics.
+ * Used for API responses that include both position and stock information.
+ */
+export interface PositionWithStock extends Position {
+  /** Stock market data */
+  stock: Stock;
+}
+
+/**
+ * Aggregated position (positions rolled up by ticker).
+ *
+ * Combines multiple purchases of the same ticker into a single view
+ * with calculated totals and weighted averages.
+ */
+export interface AggregatedPosition {
+  /** Stock ticker symbol */
+  ticker: string;
+
+  /** Stock market data */
+  stock: Stock;
+
+  /** Total quantity across all positions */
+  totalQuantity: number;
+
+  /** Weighted average cost basis across all positions */
+  weightedAverageCostBasis: number;
+
+  /** Individual positions for this ticker */
+  positions: Position[];
+
+  /** Oldest purchase date (if any) */
+  oldestPurchaseDate?: string;
+
+  /** Newest purchase date (if any) */
+  newestPurchaseDate?: string;
+}
+
+/**
+ * Portfolio container holding all aggregated positions.
+ *
+ * Simple collection of aggregated positions for portfolio-wide calculations.
  */
 export interface Portfolio {
-  /** Array of all stock holdings in the portfolio */
-  holdings: Holding[];
+  /** Array of all aggregated positions in the portfolio */
+  positions: AggregatedPosition[];
 }
 
 /**
- * Extended holding information with calculated performance metrics.
+ * Enriched aggregated position with calculated performance metrics.
  *
  * Used for display and analytics in the UI. Includes real-time calculations
- * for gains/losses, dividend yields, and current values based on live market data.
+ * for gains/losses, dividend yields, and current values based on market data.
  */
-export interface HoldingMetadata extends Holding {
-  /** Current stock data (may be updated from Finnhub, potentially newer than snapshot) */
-  stockData: StockData;
-
-  /** Current market value (quantity × currentPrice) */
+export interface PositionMetadata extends AggregatedPosition {
+  /** Current market value (totalQuantity × currentPrice) */
   currentValue: number;
 
-  /** Total purchase cost (quantity × costBasis) */
+  /** Total purchase cost (totalQuantity × weightedAverageCostBasis) */
   totalCost: number;
 
   /** Dollar gain/loss (currentValue - totalCost) */
@@ -70,10 +104,10 @@ export interface HoldingMetadata extends Holding {
   /** Current dividend yield percentage (annualDividend / currentPrice × 100) */
   dividendYield: number;
 
-  /** Yield on cost (annualDividend / costBasis × 100) */
+  /** Yield on cost (annualDividend / weightedAverageCostBasis × 100) */
   yieldOnCost: number;
 
-  /** Annual dividend income from this holding (quantity × annualDividend) */
+  /** Annual dividend income from this position (totalQuantity × annualDividend) */
   annualIncome: number;
 }
 

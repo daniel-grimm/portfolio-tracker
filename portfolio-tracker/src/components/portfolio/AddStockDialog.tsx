@@ -440,7 +440,11 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           {/* Ticker Input with Fetch Button */}
           <Box sx={{ display: "flex", gap: 1 }}>
             <TextField
-              label={`${securityType.length === 3 ? securityType.toUpperCase() : securityType.charAt(0).toUpperCase() + securityType.slice(1)} Ticker`}
+              label={`${
+                securityType.length === 3
+                  ? securityType.toUpperCase()
+                  : securityType.charAt(0).toUpperCase() + securityType.slice(1)
+              } Ticker`}
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               error={!!errors.ticker}
@@ -552,11 +556,66 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                   onChange={(e) => setMarketCap(e.target.value)}
                   label="Market Cap"
                 >
-                  <MenuItem value="mega">Mega Cap</MenuItem>
-                  <MenuItem value="large">Large Cap</MenuItem>
-                  <MenuItem value="mid">Mid Cap</MenuItem>
-                  <MenuItem value="small">Small Cap</MenuItem>
-                  <MenuItem value="micro">Micro Cap</MenuItem>
+                  <MenuItem
+                    value="mega"
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    Mega Cap
+                  </MenuItem>
+                  <MenuItem
+                    value="large"
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    Large Cap
+                  </MenuItem>
+                  <MenuItem
+                    value="mid"
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    Mid Cap
+                  </MenuItem>
+                  <MenuItem
+                    value="small"
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    Small Cap
+                  </MenuItem>
+                  <MenuItem
+                    value="micro"
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    Micro Cap
+                  </MenuItem>
                 </Select>
                 {errors.marketCap && (
                   <FormHelperText>{errors.marketCap}</FormHelperText>
@@ -575,7 +634,17 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                 label="Sector"
               >
                 {SECTORS.map((s) => (
-                  <MenuItem key={s} value={s}>
+                  <MenuItem
+                    key={s}
+                    value={s}
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
                     {s}
                   </MenuItem>
                 ))}
@@ -605,7 +674,17 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                       label="Sector"
                     >
                       {SECTORS.map((s) => (
-                        <MenuItem key={s} value={s}>
+                        <MenuItem
+                          key={s}
+                          value={s}
+                          sx={{
+                            backgroundColor: "background.default",
+                            "&:hover": {
+                              backgroundColor: "background.default",
+                              color: "text.primary",
+                            },
+                          }}
+                        >
                           {s}
                         </MenuItem>
                       ))}
@@ -708,7 +787,17 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
               label="Style"
             >
               {STYLES.map((s) => (
-                <MenuItem key={s} value={s}>
+                <MenuItem
+                  key={s}
+                  value={s}
+                  sx={{
+                    backgroundColor: "background.default",
+                    "&:hover": {
+                      backgroundColor: "background.default",
+                      color: "text.primary",
+                    },
+                  }}
+                >
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </MenuItem>
               ))}

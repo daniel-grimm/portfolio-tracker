@@ -45,7 +45,13 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
   if (positions.length === 0) {
     return (
       <>
-        <Paper sx={{ p: 4, textAlign: "center" }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: "center",
+            backgroundColor: "primary.dark",
+          }}
+        >
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No Positions Yet
           </Typography>

@@ -28,11 +28,11 @@ export function MetricCard({
     <Card
       elevation={2}
       sx={{
-        backgroundColor: "#ddd;",
+        backgroundColor: "primary.dark",
       }}
     >
       <CardContent>
-        <Typography color="text.secondary" gutterBottom variant="body2">
+        <Typography color="text.primary" gutterBottom variant="body2">
           {title}
         </Typography>
         <Typography
@@ -44,7 +44,7 @@ export function MetricCard({
           {value}
         </Typography>
         {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.primary" sx={{ mt: 1 }}>
             {subtitle}
           </Typography>
         )}

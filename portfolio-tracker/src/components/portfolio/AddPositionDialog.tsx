@@ -57,7 +57,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
     const newErrors: { [key: string]: string } = {};
 
     if (!ticker) {
-      newErrors.ticker = "Please select a stock";
+      newErrors.ticker = "Please select a ticker";
     }
 
     const quantityNum = parseFloat(quantity);
@@ -79,7 +79,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
       return;
     }
 
-    const position: Omit<Position, 'id'> = {
+    const position: Omit<Position, "id"> = {
       ticker: ticker.toUpperCase(),
       quantity: parseFloat(quantity),
       costBasis: parseFloat(costBasis),
@@ -107,13 +107,22 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
     onClose();
   };
 
-  const selectedStock = stocks.find(s => s.ticker === ticker);
+  const selectedStock = stocks.find((s) => s.ticker === ticker);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add New Position</DialogTitle>
-      <DialogContent>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+      <DialogTitle sx={{ backgroundColor: "background.default" }}>
+        Add New Position
+      </DialogTitle>
+      <DialogContent sx={{ backgroundColor: "background.default" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mt: 1,
+          }}
+        >
           {/* Stock Selection */}
           <FormControl required error={!!errors.ticker} fullWidth>
             <InputLabel>Select Stock</InputLabel>
@@ -123,10 +132,25 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
               label="Select Stock"
             >
               {stocks.length === 0 ? (
-                <MenuItem disabled>No stocks available. Add a stock first.</MenuItem>
+                <MenuItem
+                  disabled
+                  sx={{ backgroundColor: "background.default" }}
+                >
+                  No stocks available. Add a stock first.
+                </MenuItem>
               ) : (
                 stocks.map((stock) => (
-                  <MenuItem key={stock.ticker} value={stock.ticker}>
+                  <MenuItem
+                    key={stock.ticker}
+                    value={stock.ticker}
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
                     {stock.ticker} - {stock.name}
                   </MenuItem>
                 ))
@@ -153,7 +177,8 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
                 <strong>Company:</strong> {selectedStock.name}
               </Typography>
               <Typography variant="body2">
-                <strong>Current Price:</strong> ${selectedStock.currentPrice.toFixed(2)}
+                <strong>Current Price:</strong> $
+                {selectedStock.currentPrice.toFixed(2)}
               </Typography>
               <Typography variant="body2">
                 <strong>Sector:</strong> {selectedStock.sector}
@@ -170,12 +195,12 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
 
           {/* Quantity */}
           <TextField
-            label="Quantity (Shares)"
+            label="Shares"
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             error={!!errors.quantity}
-            helperText={errors.quantity || "Number of shares purchased"}
+            helperText={errors.quantity || ""}
             required
             fullWidth
             inputProps={{ min: 0, step: 0.001 }}
@@ -183,12 +208,12 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
 
           {/* Cost Basis */}
           <TextField
-            label="Cost Basis (Price per Share)"
+            label="Cost Basis"
             type="number"
             value={costBasis}
             onChange={(e) => setCostBasis(e.target.value)}
             error={!!errors.costBasis}
-            helperText={errors.costBasis || "Purchase price per share"}
+            helperText={errors.costBasis || ""}
             required
             fullWidth
             inputProps={{ min: 0, step: 0.01 }}
@@ -210,12 +235,13 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
           {/* Warning if no stocks */}
           {stocks.length === 0 && (
             <Alert severity="warning">
-              No stocks available. Please add a stock first before creating a position.
+              No stocks available. Please add a stock first before creating a
+              position.
             </Alert>
           )}
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ backgroundColor: "background.default" }}>
         <Button onClick={handleClose} disabled={loading}>
           Cancel
         </Button>

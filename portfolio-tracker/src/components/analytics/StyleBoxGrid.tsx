@@ -51,7 +51,7 @@ function StyleBoxCell({ label, value }: StyleBoxCellProps) {
 
 export function StyleBoxGrid({ allocation }: StyleBoxGridProps) {
   return (
-    <Paper sx={{ p: 3 }} elevation={2}>
+    <Paper sx={{ p: 3, backgroundColor: "primary.dark" }} elevation={2}>
       <Typography variant="h6" gutterBottom>
         Portfolio Breakdown
       </Typography>

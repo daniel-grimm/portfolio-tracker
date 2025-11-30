@@ -24,8 +24,17 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { useState, useEffect } from "react";
 import { usePortfolio } from "../../context/PortfolioContext";
-import type { StockData, Sector, Style, SectorAllocationMap, CountryAllocationMap } from "../../types/stock.types";
-import { fetchStockQuote, fetchCompanyProfile } from "../../services/finnhubService";
+import type {
+  StockData,
+  Sector,
+  Style,
+  SectorAllocationMap,
+  CountryAllocationMap,
+} from "../../types/stock.types";
+import {
+  fetchStockQuote,
+  fetchCompanyProfile,
+} from "../../services/finnhubService";
 import { classifyMarketCap } from "../../services/stockDataService";
 import { SECTORS, STYLES } from "../../data/constants";
 
@@ -45,7 +54,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
   const { addStock } = usePortfolio();
 
   // Security type selection
-  const [securityType, setSecurityType] = useState<'stock' | 'etf'>('stock');
+  const [securityType, setSecurityType] = useState<"stock" | "etf">("stock");
 
   // Form fields
   const [ticker, setTicker] = useState("");
@@ -79,7 +88,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
   }, [open]);
 
   const resetForm = () => {
-    setSecurityType('stock');
+    setSecurityType("stock");
     setTicker("");
     setSector("");
     setStyle("");
@@ -109,11 +118,11 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
     try {
       const normalizedTicker = ticker.trim().toUpperCase();
 
-      if (securityType === 'stock') {
+      if (securityType === "stock") {
         // For stocks: Fetch both quote and profile
         const [quote, profile] = await Promise.all([
           fetchStockQuote(normalizedTicker),
-          fetchCompanyProfile(normalizedTicker)
+          fetchCompanyProfile(normalizedTicker),
         ]);
 
         // Set fetched data
@@ -146,7 +155,9 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       if (error instanceof Error) {
         setFetchError(error.message);
       } else {
-        setFetchError(`Failed to fetch ${securityType} data. Please check the ticker symbol.`);
+        setFetchError(
+          `Failed to fetch ${securityType} data. Please check the ticker symbol.`
+        );
       }
       setStockFetched(false);
     } finally {
@@ -158,27 +169,66 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
   const mapIndustryToSector = (industry: string): Sector | null => {
     const industryLower = industry.toLowerCase();
 
-    if (industryLower.includes("tech") || industryLower.includes("software") || industryLower.includes("internet")) {
+    if (
+      industryLower.includes("tech") ||
+      industryLower.includes("software") ||
+      industryLower.includes("internet")
+    ) {
       return "Technology";
-    } else if (industryLower.includes("health") || industryLower.includes("pharma") || industryLower.includes("bio")) {
+    } else if (
+      industryLower.includes("health") ||
+      industryLower.includes("pharma") ||
+      industryLower.includes("bio")
+    ) {
       return "Healthcare";
-    } else if (industryLower.includes("finance") || industryLower.includes("bank") || industryLower.includes("insurance")) {
+    } else if (
+      industryLower.includes("finance") ||
+      industryLower.includes("bank") ||
+      industryLower.includes("insurance")
+    ) {
       return "Financials";
-    } else if (industryLower.includes("consumer") && industryLower.includes("discretionary")) {
+    } else if (
+      industryLower.includes("consumer") &&
+      industryLower.includes("discretionary")
+    ) {
       return "Consumer Discretionary";
-    } else if (industryLower.includes("consumer") && industryLower.includes("staples")) {
+    } else if (
+      industryLower.includes("consumer") &&
+      industryLower.includes("staples")
+    ) {
       return "Consumer Staples";
-    } else if (industryLower.includes("energy") || industryLower.includes("oil") || industryLower.includes("gas")) {
+    } else if (
+      industryLower.includes("energy") ||
+      industryLower.includes("oil") ||
+      industryLower.includes("gas")
+    ) {
       return "Energy";
-    } else if (industryLower.includes("utility") || industryLower.includes("utilities")) {
+    } else if (
+      industryLower.includes("utility") ||
+      industryLower.includes("utilities")
+    ) {
       return "Utilities";
-    } else if (industryLower.includes("real estate") || industryLower.includes("reit")) {
+    } else if (
+      industryLower.includes("real estate") ||
+      industryLower.includes("reit")
+    ) {
       return "Real Estate";
-    } else if (industryLower.includes("material") || industryLower.includes("mining") || industryLower.includes("chemical")) {
+    } else if (
+      industryLower.includes("material") ||
+      industryLower.includes("mining") ||
+      industryLower.includes("chemical")
+    ) {
       return "Materials";
-    } else if (industryLower.includes("industrial") || industryLower.includes("manufacturing")) {
+    } else if (
+      industryLower.includes("industrial") ||
+      industryLower.includes("manufacturing")
+    ) {
       return "Industrials";
-    } else if (industryLower.includes("communication") || industryLower.includes("telecom") || industryLower.includes("media")) {
+    } else if (
+      industryLower.includes("communication") ||
+      industryLower.includes("telecom") ||
+      industryLower.includes("media")
+    ) {
       return "Communication Services";
     }
 
@@ -187,31 +237,49 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
 
   // Helper functions for managing allocation rows
   const addSectorRow = () => {
-    setSectorRows([...sectorRows, { id: Date.now().toString(), name: "", percentage: "" }]);
+    setSectorRows([
+      ...sectorRows,
+      { id: Date.now().toString(), name: "", percentage: "" },
+    ]);
   };
 
   const removeSectorRow = (id: string) => {
-    setSectorRows(sectorRows.filter(row => row.id !== id));
+    setSectorRows(sectorRows.filter((row) => row.id !== id));
   };
 
-  const updateSectorRow = (id: string, field: 'name' | 'percentage', value: string) => {
-    setSectorRows(sectorRows.map(row =>
-      row.id === id ? { ...row, [field]: value } : row
-    ));
+  const updateSectorRow = (
+    id: string,
+    field: "name" | "percentage",
+    value: string
+  ) => {
+    setSectorRows(
+      sectorRows.map((row) =>
+        row.id === id ? { ...row, [field]: value } : row
+      )
+    );
   };
 
   const addCountryRow = () => {
-    setCountryRows([...countryRows, { id: Date.now().toString(), name: "", percentage: "" }]);
+    setCountryRows([
+      ...countryRows,
+      { id: Date.now().toString(), name: "", percentage: "" },
+    ]);
   };
 
   const removeCountryRow = (id: string) => {
-    setCountryRows(countryRows.filter(row => row.id !== id));
+    setCountryRows(countryRows.filter((row) => row.id !== id));
   };
 
-  const updateCountryRow = (id: string, field: 'name' | 'percentage', value: string) => {
-    setCountryRows(countryRows.map(row =>
-      row.id === id ? { ...row, [field]: value } : row
-    ));
+  const updateCountryRow = (
+    id: string,
+    field: "name" | "percentage",
+    value: string
+  ) => {
+    setCountryRows(
+      countryRows.map((row) =>
+        row.id === id ? { ...row, [field]: value } : row
+      )
+    );
   };
 
   // Calculate total allocation percentages
@@ -229,7 +297,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       newErrors.fetch = `Please fetch ${securityType} data before submitting`;
     }
 
-    if (securityType === 'etf') {
+    if (securityType === "etf") {
       // ETF-specific validation
       if (!companyName.trim()) {
         newErrors.name = "Please enter ETF name";
@@ -242,12 +310,16 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       // Validation warnings for allocation percentages (not errors, just warnings)
       const sectorTotal = calculateTotalPercentage(sectorRows);
       if (sectorRows.length > 0 && Math.abs(sectorTotal - 100) > 5) {
-        newErrors.sectorAllocation = `Sector allocations total ${sectorTotal.toFixed(1)}% (should be ~100%)`;
+        newErrors.sectorAllocation = `Sector allocations total ${sectorTotal.toFixed(
+          1
+        )}% (should be ~100%)`;
       }
 
       const countryTotal = calculateTotalPercentage(countryRows);
       if (countryRows.length > 0 && Math.abs(countryTotal - 100) > 5) {
-        newErrors.countryAllocation = `Country allocations total ${countryTotal.toFixed(1)}% (should be ~100%)`;
+        newErrors.countryAllocation = `Country allocations total ${countryTotal.toFixed(
+          1
+        )}% (should be ~100%)`;
       }
     } else {
       // Stock-specific validation
@@ -297,13 +369,13 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
 
     // Determine sector and country for ETFs (use first allocation or default)
     const dominantSector =
-      securityType === 'etf' && sectorRows.length > 0
+      securityType === "etf" && sectorRows.length > 0
         ? (sectorRows[0].name as Sector)
         : (sector as Sector);
     const dominantCountry =
-      securityType === 'etf' && countryRows.length > 0
+      securityType === "etf" && countryRows.length > 0
         ? countryRows[0].name
-        : (country || "US");
+        : country || "US";
 
     const stock: StockData = {
       ticker: ticker.toUpperCase(),
@@ -316,7 +388,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       style: style as Style,
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
-      isEtf: securityType === 'etf',
+      isEtf: securityType === "etf",
       description: description || undefined,
       sectorAllocations,
       countryAllocations,
@@ -341,8 +413,10 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Add New Stock or ETF</DialogTitle>
-      <DialogContent>
+      <DialogTitle sx={{ backgroundColor: "background.default" }}>
+        Add New Stock or ETF
+      </DialogTitle>
+      <DialogContent sx={{ backgroundColor: "background.default" }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
           {/* Stock/ETF Selection */}
           <FormControl component="fieldset">
@@ -350,9 +424,15 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
             <RadioGroup
               row
               value={securityType}
-              onChange={(e) => setSecurityType(e.target.value as 'stock' | 'etf')}
+              onChange={(e) =>
+                setSecurityType(e.target.value as "stock" | "etf")
+              }
             >
-              <FormControlLabel value="stock" control={<Radio />} label="Stock" />
+              <FormControlLabel
+                value="stock"
+                control={<Radio />}
+                label="Stock"
+              />
               <FormControlLabel value="etf" control={<Radio />} label="ETF" />
             </RadioGroup>
           </FormControl>
@@ -360,14 +440,16 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           {/* Ticker Input with Fetch Button */}
           <Box sx={{ display: "flex", gap: 1 }}>
             <TextField
-              label={`${securityType.toUpperCase()} Ticker`}
+              label={`${securityType.length === 3 ? securityType.toUpperCase() : securityType.charAt(0).toUpperCase() + securityType.slice(1)} Ticker`}
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               error={!!errors.ticker}
               helperText={errors.ticker}
               required
               fullWidth
-              placeholder={securityType === 'stock' ? "e.g., AAPL" : "e.g., VOO"}
+              placeholder={
+                securityType === "stock" ? "e.g., AAPL" : "e.g., VOO"
+              }
             />
             <Button
               variant="outlined"
@@ -387,12 +469,10 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           )}
 
           {/* Validation Error for Fetch */}
-          {errors.fetch && (
-            <Alert severity="warning">{errors.fetch}</Alert>
-          )}
+          {errors.fetch && <Alert severity="warning">{errors.fetch}</Alert>}
 
           {/* Fetched Info Display */}
-          {stockFetched && securityType === 'stock' && (
+          {stockFetched && securityType === "stock" && (
             <Box
               sx={{
                 p: 2,
@@ -421,7 +501,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           )}
 
           {/* ETF Manual Input Fields */}
-          {securityType === 'etf' && stockFetched && (
+          {securityType === "etf" && stockFetched && (
             <Box
               sx={{
                 p: 2,
@@ -444,7 +524,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           )}
 
           {/* ETF Name and Description */}
-          {securityType === 'etf' && stockFetched && (
+          {securityType === "etf" && stockFetched && (
             <>
               <TextField
                 label="ETF Name"
@@ -478,13 +558,15 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                   <MenuItem value="small">Small Cap</MenuItem>
                   <MenuItem value="micro">Micro Cap</MenuItem>
                 </Select>
-                {errors.marketCap && <FormHelperText>{errors.marketCap}</FormHelperText>}
+                {errors.marketCap && (
+                  <FormHelperText>{errors.marketCap}</FormHelperText>
+                )}
               </FormControl>
             </>
           )}
 
           {/* Sector Selection (Stocks only) */}
-          {securityType === 'stock' && (
+          {securityType === "stock" && (
             <FormControl required error={!!errors.sector}>
               <InputLabel>Sector</InputLabel>
               <Select
@@ -498,24 +580,28 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                   </MenuItem>
                 ))}
               </Select>
-              {errors.sector && <FormHelperText>{errors.sector}</FormHelperText>}
+              {errors.sector && (
+                <FormHelperText>{errors.sector}</FormHelperText>
+              )}
             </FormControl>
           )}
 
           {/* ETF Sector Allocations */}
-          {securityType === 'etf' && stockFetched && (
+          {securityType === "etf" && stockFetched && (
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Sector Allocations (Optional)
               </Typography>
               {sectorRows.map((row) => (
-                <Box key={row.id} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                <Box key={row.id} sx={{ display: "flex", gap: 1, mb: 1 }}>
                   <FormControl sx={{ flex: 2 }}>
                     <InputLabel size="small">Sector</InputLabel>
                     <Select
                       size="small"
                       value={row.name}
-                      onChange={(e) => updateSectorRow(row.id, 'name', e.target.value)}
+                      onChange={(e) =>
+                        updateSectorRow(row.id, "name", e.target.value)
+                      }
                       label="Sector"
                     >
                       {SECTORS.map((s) => (
@@ -530,7 +616,9 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                     size="small"
                     type="number"
                     value={row.percentage}
-                    onChange={(e) => updateSectorRow(row.id, 'percentage', e.target.value)}
+                    onChange={(e) =>
+                      updateSectorRow(row.id, "percentage", e.target.value)
+                    }
                     inputProps={{ min: 0, max: 100, step: 0.1 }}
                     sx={{ flex: 1 }}
                   />
@@ -558,18 +646,20 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           )}
 
           {/* ETF Country Allocations */}
-          {securityType === 'etf' && stockFetched && (
+          {securityType === "etf" && stockFetched && (
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Country Allocations (Optional)
               </Typography>
               {countryRows.map((row) => (
-                <Box key={row.id} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                <Box key={row.id} sx={{ display: "flex", gap: 1, mb: 1 }}>
                   <TextField
                     label="Country"
                     size="small"
                     value={row.name}
-                    onChange={(e) => updateCountryRow(row.id, 'name', e.target.value)}
+                    onChange={(e) =>
+                      updateCountryRow(row.id, "name", e.target.value)
+                    }
                     sx={{ flex: 2 }}
                     placeholder="e.g., US, China, UK"
                   />
@@ -578,7 +668,9 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                     size="small"
                     type="number"
                     value={row.percentage}
-                    onChange={(e) => updateCountryRow(row.id, 'percentage', e.target.value)}
+                    onChange={(e) =>
+                      updateCountryRow(row.id, "percentage", e.target.value)
+                    }
                     inputProps={{ min: 0, max: 100, step: 0.1 }}
                     sx={{ flex: 1 }}
                   />
@@ -600,7 +692,9 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                 Add Country
               </Button>
               {errors.countryAllocation && (
-                <FormHelperText error>{errors.countryAllocation}</FormHelperText>
+                <FormHelperText error>
+                  {errors.countryAllocation}
+                </FormHelperText>
               )}
             </Box>
           )}
@@ -629,17 +723,24 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
             value={annualDividend}
             onChange={(e) => setAnnualDividend(e.target.value)}
             error={!!errors.annualDividend}
-            helperText={errors.annualDividend || "Enter 0 if the stock doesn't pay dividends"}
+            helperText={
+              errors.annualDividend ||
+              "Enter 0 if the stock doesn't pay dividends"
+            }
             inputProps={{ min: 0, step: 0.01 }}
           />
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ backgroundColor: "background.default" }}>
         <Button onClick={handleClose} disabled={loading}>
           Cancel
         </Button>
         <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={24} /> : `Add ${securityType === 'stock' ? 'Stock' : 'ETF'}`}
+          {loading ? (
+            <CircularProgress size={24} />
+          ) : (
+            `Add ${securityType === "stock" ? "Stock" : "ETF"}`
+          )}
         </Button>
       </DialogActions>
     </Dialog>

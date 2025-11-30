@@ -7,7 +7,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#888" }}>
+    <Box sx={{ minHeight: "100vh" }}>
       <Container maxWidth="xl" sx={{ py: 4 }}>
         {children}
       </Container>

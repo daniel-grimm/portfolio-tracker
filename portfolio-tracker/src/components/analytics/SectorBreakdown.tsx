@@ -1,24 +1,31 @@
-import { Paper, Typography } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { SectorAllocation } from '../../types/portfolio.types';
-import { formatPercent } from '../../utils/formatters';
+import { Paper, Typography } from "@mui/material";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+import type { SectorAllocation } from "../../types/portfolio.types";
+import { formatPercent } from "../../utils/formatters";
 
 interface SectorBreakdownProps {
   allocation: SectorAllocation;
 }
 
 const COLORS = [
-  '#1976d2',
-  '#dc004e',
-  '#2e7d32',
-  '#ed6c02',
-  '#9c27b0',
-  '#00897b',
-  '#d32f2f',
-  '#0288d1',
-  '#7b1fa2',
-  '#c62828',
-  '#5e35b1',
+  "#1976d2",
+  "#dc004e",
+  "#2e7d32",
+  "#ed6c02",
+  "#9c27b0",
+  "#00897b",
+  "#d32f2f",
+  "#0288d1",
+  "#7b1fa2",
+  "#c62828",
+  "#5e35b1",
 ];
 
 export function SectorBreakdown({ allocation }: SectorBreakdownProps) {
@@ -44,7 +51,7 @@ export function SectorBreakdown({ allocation }: SectorBreakdownProps) {
   }
 
   return (
-    <Paper sx={{ p: 3 }} elevation={2}>
+    <Paper sx={{ p: 3, backgroundColor: "primary.dark" }} elevation={2}>
       <Typography variant="h6" gutterBottom>
         Sector Breakdown
       </Typography>
@@ -61,7 +68,10 @@ export function SectorBreakdown({ allocation }: SectorBreakdownProps) {
             dataKey="value"
           >
             {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
             ))}
           </Pie>
           <Tooltip formatter={(value) => formatPercent(Number(value), 2)} />

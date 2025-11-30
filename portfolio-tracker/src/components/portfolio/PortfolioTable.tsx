@@ -31,7 +31,11 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
   };
 
   const handleDelete = (ticker: string) => {
-    if (window.confirm("Are you sure you want to delete all positions for this ticker?")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete all positions for this ticker?"
+      )
+    ) {
       // TODO: This will need to be updated to delete individual positions
       // For now, this is a placeholder
       console.warn("Delete position not yet implemented", ticker);
@@ -48,7 +52,7 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Start by adding a stock and then add positions
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
             <Button
               variant="outlined"
               startIcon={<AddIcon />}
@@ -88,7 +92,7 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
         }}
       >
         <Typography variant="h6">Portfolio Positions</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1 }}>
           <Button
             variant="outlined"
             startIcon={<AddIcon />}
@@ -105,11 +109,8 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
           </Button>
         </Box>
       </Box>
-      <TableContainer
-        component={Paper}
-        elevation={2}
-      >
-        <Table size="small" sx={{backgroundColor: '#ddd'}}>
+      <TableContainer component={Paper} elevation={2}>
+        <Table size="small" sx={{ backgroundColor: "primary.dark" }}>
           <TableHead>
             <TableRow>
               <TableCell>Ticker</TableCell>

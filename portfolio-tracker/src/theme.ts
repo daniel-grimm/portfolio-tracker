@@ -1,18 +1,27 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
 export const theme = createTheme({
   palette: {
     primary: {
-      main: '#3b963cff',
+      main: "#3b963cff",
+      light: "#fff",
+      dark: "#444"
     },
     secondary: {
-      main: '#dc004e',
+      main: "#dc004e",
     },
     success: {
-      main: '#2e7d32',
+      main: "#2e7d32",
     },
     error: {
-      main: '#d32f2f',
+      main: "#d32f2f",
+    },
+    background: {
+      default: "#333",
+    },
+    text: {
+      primary: "#fff",
+      secondary: "#fff",
     },
   },
   typography: {
@@ -37,7 +46,7 @@ export const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
+          textTransform: "none",
         },
       },
     },

@@ -29,6 +29,7 @@ import type {
   SectorAllocationMap,
   CountryAllocationMap,
 } from "../../types/stock.types";
+import { isEtfOrMutualFund } from "../../types/stock.types";
 import { SECTORS, STYLES, MARKET_CAPS } from "../../data/constants";
 
 interface EditStockDialogProps {
@@ -76,8 +77,8 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
       setStyle(stock.style);
       setDescription(stock.description || "");
 
-      // Convert allocation maps to rows for ETFs
-      if (stock.isEtf) {
+      // Convert allocation maps to rows for ETFs and mutual funds
+      if (isEtfOrMutualFund(stock)) {
         if (stock.sectorAllocations) {
           const rows = Object.entries(stock.sectorAllocations).map(
             ([name, percentage]: [string, number], index) => ({
@@ -192,7 +193,13 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
     }
 
     if (!companyName.trim()) {
-      newErrors.name = `Please enter ${stock.isEtf ? "ETF" : "company"} name`;
+      newErrors.name = `Please enter ${
+        stock.securityType === "etf"
+          ? "ETF"
+          : stock.securityType === "mutualfund"
+          ? "mutual fund"
+          : "company"
+      } name`;
     }
 
     const priceNum = parseFloat(currentPrice);
@@ -205,7 +212,7 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
       newErrors.annualDividend = "Annual dividend must be 0 or greater";
     }
 
-    if (stock.isEtf) {
+    if (isEtfOrMutualFund(stock)) {
       // ETF-specific validation
       if (!marketCap) {
         newErrors.marketCap = "Please select market cap";
@@ -267,11 +274,11 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
         : undefined;
 
     // Determine dominant sector and country for ETFs
-    const dominantSector = stock.isEtf && sectorRows.length > 0
+    const dominantSector = isEtfOrMutualFund(stock) && sectorRows.length > 0
       ? (sectorRows[0].name as Sector)
       : (sector as Sector);
 
-    const dominantCountry = stock.isEtf && countryRows.length > 0
+    const dominantCountry = isEtfOrMutualFund(stock) && countryRows.length > 0
       ? countryRows[0].name
       : stock.country;
 
@@ -286,7 +293,8 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
       style: style as Style,
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
-      isEtf: stock.isEtf,
+      securityType: stock.securityType,
+      isEtf: stock.securityType === "etf", // Maintain backward compatibility
       description: description || undefined,
       sectorAllocations,
       countryAllocations,
@@ -316,11 +324,29 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
     <Dialog open={open} onClose={!loading ? onClose : undefined} maxWidth="md" fullWidth>
       <DialogTitle sx={{ backgroundColor: "background.default" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          Edit {stock.isEtf ? "ETF" : "Stock"}
+          Edit {
+            stock.securityType === "etf"
+              ? "ETF"
+              : stock.securityType === "mutualfund"
+              ? "Mutual Fund"
+              : "Stock"
+          }
           <Chip
-            label={stock.isEtf ? "ETF" : "Stock"}
+            label={
+              stock.securityType === "etf"
+                ? "ETF"
+                : stock.securityType === "mutualfund"
+                ? "Mutual Fund"
+                : "Stock"
+            }
             size="small"
-            color={stock.isEtf ? "secondary" : "primary"}
+            color={
+              stock.securityType === "etf"
+                ? "secondary"
+                : stock.securityType === "mutualfund"
+                ? "success"
+                : "primary"
+            }
           />
         </Box>
       </DialogTitle>
@@ -337,7 +363,13 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
 
           {/* Name */}
           <TextField
-            label={stock.isEtf ? "ETF Name" : "Company Name"}
+            label={
+              stock.securityType === "etf"
+                ? "ETF Name"
+                : stock.securityType === "mutualfund"
+                ? "Mutual Fund Name"
+                : "Company Name"
+            }
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             error={!!errors.name}
@@ -372,7 +404,7 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
           />
 
           {/* Stock-Specific Fields */}
-          {!stock.isEtf && (
+          {!isEtfOrMutualFund(stock) && (
             <>
               {/* Sector */}
               <FormControl required error={!!errors.sector} fullWidth>
@@ -412,7 +444,7 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
           )}
 
           {/* ETF-Specific Fields */}
-          {stock.isEtf && (
+          {isEtfOrMutualFund(stock) && (
             <>
               {/* Description */}
               <TextField

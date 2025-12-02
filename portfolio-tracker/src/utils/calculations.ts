@@ -6,6 +6,7 @@ import type {
   GeographicAllocation,
   DomesticIntlAllocation,
 } from "../types/portfolio.types";
+import { isEtfOrMutualFund } from "../types/stock.types";
 
 export function enrichPosition(
   position: AggregatedPosition
@@ -118,8 +119,8 @@ export function calculateSectorAllocation(
   enrichedPositions.forEach((position) => {
     const stock = position.stock;
 
-    if (stock.isEtf && stock.sectorAllocations) {
-      // ETF: distribute value across sectors proportionally
+    if (isEtfOrMutualFund(stock) && stock.sectorAllocations) {
+      // ETF/Mutual Fund: distribute value across sectors proportionally
       Object.entries(stock.sectorAllocations).forEach(([sector, pct]) => {
         if (!sectorTotals[sector]) {
           sectorTotals[sector] = 0;
@@ -161,8 +162,8 @@ export function calculateGeographicAllocation(
   enrichedPositions.forEach((position) => {
     const stock = position.stock;
 
-    if (stock.isEtf && stock.countryAllocations) {
-      // ETF: distribute value across countries proportionally
+    if (isEtfOrMutualFund(stock) && stock.countryAllocations) {
+      // ETF/Mutual Fund: distribute value across countries proportionally
       Object.entries(stock.countryAllocations).forEach(([country, pct]) => {
         if (!countryTotals[country]) {
           countryTotals[country] = 0;
@@ -204,8 +205,8 @@ export function calculateDomesticIntlAllocation(
   enrichedPositions.forEach((position) => {
     const stock = position.stock;
 
-    if (stock.isEtf && stock.countryAllocations) {
-      // ETF: calculate domestic portion from US allocation percentage
+    if (isEtfOrMutualFund(stock) && stock.countryAllocations) {
+      // ETF/Mutual Fund: calculate domestic portion from US allocation percentage
       const usPercentage = stock.countryAllocations["US"] || 0;
       domesticValue += position.currentValue * (usPercentage / 100);
     } else {

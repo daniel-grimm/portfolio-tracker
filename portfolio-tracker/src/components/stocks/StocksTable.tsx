@@ -76,9 +76,21 @@ export function StocksTable({ stocks, onEdit, onDelete }: StocksTableProps) {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Typography>{stock.name}</Typography>
                   <Chip
-                    label={stock.isEtf ? "ETF" : "Stock"}
+                    label={
+                      stock.securityType === "etf"
+                        ? "ETF"
+                        : stock.securityType === "mutualfund"
+                        ? "Mutual Fund"
+                        : "Stock"
+                    }
                     size="small"
-                    color={stock.isEtf ? "secondary" : "primary"}
+                    color={
+                      stock.securityType === "etf"
+                        ? "secondary"
+                        : stock.securityType === "mutualfund"
+                        ? "success"
+                        : "primary"
+                    }
                   />
                 </Box>
               </TableCell>

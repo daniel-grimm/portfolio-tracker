@@ -31,11 +31,13 @@ import type {
   MarketCap,
   SectorAllocationMap,
   CountryAllocationMap,
+  SecurityType,
 } from "../../types/stock.types";
 import {
   fetchStockQuote,
   fetchCompanyProfile,
 } from "../../services/finnhubService";
+import { fetchMutualFundQuote } from "../../services/alphaVantageService";
 import { classifyMarketCap } from "../../services/stockDataService";
 import { SECTORS, STYLES } from "../../data/constants";
 
@@ -55,7 +57,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
   const { addStock } = usePortfolio();
 
   // Security type selection
-  const [securityType, setSecurityType] = useState<"stock" | "etf">("stock");
+  const [securityType, setSecurityType] = useState<SecurityType>("stock");
 
   // Form fields
   const [ticker, setTicker] = useState("");
@@ -139,14 +141,23 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
         if (mappedSector) {
           setSector(mappedSector);
         }
-      } else {
-        // For ETFs: Only fetch quote (price)
+      } else if (securityType === "etf") {
+        // For ETFs: Only fetch quote (price) from Finnhub
         const quote = await fetchStockQuote(normalizedTicker);
 
         // Set fetched data
         setTicker(normalizedTicker);
         setCurrentPrice(quote.c.toFixed(2));
         // ETF name/description must be entered manually
+        // Market cap, sector, country allocations will be manual
+      } else {
+        // For mutual funds: Only fetch quote (price) from Alpha Vantage
+        const quote = await fetchMutualFundQuote(normalizedTicker);
+
+        // Set fetched data
+        setTicker(normalizedTicker);
+        setCurrentPrice(quote.c.toFixed(2));
+        // Mutual fund name/description must be entered manually
         // Market cap, sector, country allocations will be manual
       }
 
@@ -298,10 +309,12 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       newErrors.fetch = `Please fetch ${securityType} data before submitting`;
     }
 
-    if (securityType === "etf") {
-      // ETF-specific validation
+    if (securityType === "etf" || securityType === "mutualfund") {
+      // ETF and mutual fund validation
+      const securityLabel = securityType === "etf" ? "ETF" : "mutual fund";
+
       if (!companyName.trim()) {
-        newErrors.name = "Please enter ETF name";
+        newErrors.name = `Please enter ${securityLabel} name`;
       }
 
       if (!marketCap) {
@@ -368,13 +381,14 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           }, {} as CountryAllocationMap)
         : undefined;
 
-    // Determine sector and country for ETFs (use first allocation or default)
+    // Determine sector and country for ETFs and mutual funds (use first allocation or default)
+    const isNotStock = securityType === "etf" || securityType === "mutualfund";
     const dominantSector =
-      securityType === "etf" && sectorRows.length > 0
+      isNotStock && sectorRows.length > 0
         ? (sectorRows[0].name as Sector)
         : (sector as Sector);
     const dominantCountry =
-      securityType === "etf" && countryRows.length > 0
+      isNotStock && countryRows.length > 0
         ? countryRows[0].name
         : country || "US";
 
@@ -389,7 +403,8 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       style: style as Style,
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
-      isEtf: securityType === "etf",
+      securityType: securityType,
+      isEtf: securityType === "etf", // Maintain backward compatibility
       description: description || undefined,
       sectorAllocations,
       countryAllocations,
@@ -415,18 +430,18 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ backgroundColor: "background.default" }}>
-        Add New Stock or ETF
+        Add New Security
       </DialogTitle>
       <DialogContent sx={{ backgroundColor: "background.default" }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-          {/* Stock/ETF Selection */}
+          {/* Security Type Selection */}
           <FormControl component="fieldset">
             <FormLabel component="legend">Security Type</FormLabel>
             <RadioGroup
               row
               value={securityType}
               onChange={(e) =>
-                setSecurityType(e.target.value as "stock" | "etf")
+                setSecurityType(e.target.value as SecurityType)
               }
             >
               <FormControlLabel
@@ -435,6 +450,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                 label="Stock"
               />
               <FormControlLabel value="etf" control={<Radio />} label="ETF" />
+              <FormControlLabel value="mutualfund" control={<Radio />} label="Mutual Fund" />
             </RadioGroup>
           </FormControl>
 
@@ -505,8 +521,8 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
             </Box>
           )}
 
-          {/* ETF Manual Input Fields */}
-          {securityType === "etf" && stockFetched && (
+          {/* ETF/Mutual Fund Manual Input Fields */}
+          {(securityType === "etf" || securityType === "mutualfund") && stockFetched && (
             <Box
               sx={{
                 p: 2,
@@ -517,29 +533,29 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
               }}
             >
               <Typography variant="subtitle2" gutterBottom>
-                ETF Information
+                {securityType === "etf" ? "ETF" : "Mutual Fund"} Information
               </Typography>
               <Typography variant="body2">
                 <strong>Current Price:</strong> ${currentPrice}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Please enter ETF details manually below
+                Please enter {securityType === "etf" ? "ETF" : "mutual fund"} details manually below
               </Typography>
             </Box>
           )}
 
-          {/* ETF Name and Description */}
-          {securityType === "etf" && stockFetched && (
+          {/* ETF/Mutual Fund Name and Description */}
+          {(securityType === "etf" || securityType === "mutualfund") && stockFetched && (
             <>
               <TextField
-                label="ETF Name"
+                label={securityType === "etf" ? "ETF Name" : "Mutual Fund Name"}
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 error={!!errors.name}
                 helperText={errors.name}
                 required
                 fullWidth
-                placeholder="e.g., Vanguard S&P 500 ETF"
+                placeholder={securityType === "etf" ? "e.g., Vanguard S&P 500 ETF" : "e.g., Fidelity 500 Index Fund"}
               />
               <TextField
                 label="Description (Optional)"
@@ -548,7 +564,7 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                 fullWidth
                 multiline
                 rows={2}
-                placeholder="Brief description of the ETF's strategy"
+                placeholder={securityType === "etf" ? "Brief description of the ETF's strategy" : "Brief description of the mutual fund's strategy"}
               />
               <FormControl required error={!!errors.marketCap}>
                 <InputLabel>Market Cap</InputLabel>
@@ -656,8 +672,8 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
             </FormControl>
           )}
 
-          {/* ETF Sector Allocations */}
-          {securityType === "etf" && stockFetched && (
+          {/* ETF/Mutual Fund Sector Allocations */}
+          {(securityType === "etf" || securityType === "mutualfund") && stockFetched && (
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Sector Allocations (Optional)
@@ -725,8 +741,8 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
             </Box>
           )}
 
-          {/* ETF Country Allocations */}
-          {securityType === "etf" && stockFetched && (
+          {/* ETF/Mutual Fund Country Allocations */}
+          {(securityType === "etf" || securityType === "mutualfund") && stockFetched && (
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Country Allocations (Optional)

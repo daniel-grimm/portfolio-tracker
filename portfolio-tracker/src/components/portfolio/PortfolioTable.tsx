@@ -17,6 +17,7 @@ import { PositionRow } from "./PositionRow";
 import { AddStockDialog } from "./AddStockDialog";
 import { AddPositionDialog } from "./AddPositionDialog";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { EditPositionsDialog } from "./EditPositionsDialog";
 import { usePortfolio } from "../../context/PortfolioContext";
 
 interface PortfolioTableProps {
@@ -29,10 +30,19 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tickerToDelete, setTickerToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [positionToEdit, setPositionToEdit] = useState<PositionMetadata | null>(
+    null
+  );
 
   const handleEdit = (position: PositionMetadata) => {
-    // Editing not yet implemented - would need to show list of individual positions
-    console.warn("Edit position not yet implemented", position);
+    setPositionToEdit(position);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setPositionToEdit(null);
   };
 
   const handleDelete = (ticker: string) => {
@@ -105,6 +115,11 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
             positions.find((p) => p.ticker === tickerToDelete)?.positions
               .length || 0
           }
+        />
+        <EditPositionsDialog
+          open={editDialogOpen}
+          onClose={handleCloseEditDialog}
+          positionMetadata={positionToEdit}
         />
       </>
     );
@@ -188,6 +203,11 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
           positions.find((p) => p.ticker === tickerToDelete)?.positions
             .length || 0
         }
+      />
+      <EditPositionsDialog
+        open={editDialogOpen}
+        onClose={handleCloseEditDialog}
+        positionMetadata={positionToEdit}
       />
     </>
   );

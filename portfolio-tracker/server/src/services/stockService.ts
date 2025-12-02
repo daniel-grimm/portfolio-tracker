@@ -12,6 +12,7 @@
 import { db } from "../database/db.js";
 
 // Type definitions matching frontend
+export type SecurityType = "stock" | "etf" | "mutualfund";
 export type MarketCap = "mega" | "large" | "mid" | "small" | "micro";
 export type Style = "value" | "blend" | "growth";
 export type Sector =
@@ -47,7 +48,7 @@ export interface CountryAllocationMap {
  * Stock data (single record per ticker).
  * This is the API/application format using camelCase naming.
  *
- * For ETFs, the optional fields (isEtf, description, sectorAllocations, countryAllocations)
+ * For ETFs and mutual funds, the optional fields (description, sectorAllocations, countryAllocations)
  * enable proportional allocation across multiple sectors and countries.
  */
 export interface Stock {
@@ -61,7 +62,8 @@ export interface Stock {
   style: Style;
   isDomestic: boolean;
   lastUpdated: number;
-  isEtf: boolean;
+  securityType: SecurityType;
+  isEtf: boolean; // Deprecated: use securityType instead, kept for backward compatibility
   description?: string;
   sectorAllocations?: SectorAllocationMap;
   countryAllocations?: CountryAllocationMap;
@@ -86,7 +88,8 @@ interface StockRow {
   is_domestic: number; // SQLite stores booleans as 0/1
   last_updated: number;
   created_at: number;
-  is_etf: number; // SQLite stores booleans as 0/1
+  security_type: string | null;
+  is_etf: number; // SQLite stores booleans as 0/1 - Deprecated, kept for backward compatibility
   description: string | null;
   sector_allocations: string | null; // JSON string
   country_allocations: string | null; // JSON string
@@ -99,10 +102,21 @@ interface StockRow {
  * and converts SQLite's 0/1 integers to booleans.
  * Parses JSON strings for sector and country allocations.
  *
+ * Handles backward compatibility: if security_type is missing, falls back to is_etf.
+ *
  * @param row - Raw database row from stocks table
  * @returns Stock object with typed properties
  */
 function rowToStock(row: StockRow): Stock {
+  // Determine security type with backward compatibility fallback
+  let securityType: SecurityType;
+  if (row.security_type) {
+    securityType = row.security_type as SecurityType;
+  } else {
+    // Fallback for old data without security_type
+    securityType = row.is_etf === 1 ? "etf" : "stock";
+  }
+
   return {
     ticker: row.ticker,
     name: row.name,
@@ -114,7 +128,8 @@ function rowToStock(row: StockRow): Stock {
     style: row.style as Style,
     isDomestic: row.is_domestic === 1,
     lastUpdated: row.last_updated,
-    isEtf: row.is_etf === 1,
+    securityType: securityType,
+    isEtf: securityType === "etf", // Maintain backward compatibility
     description: row.description || undefined,
     sectorAllocations: row.sector_allocations
       ? JSON.parse(row.sector_allocations)
@@ -132,6 +147,8 @@ function rowToStock(row: StockRow): Stock {
  * and converts booleans to SQLite's 0/1 integers.
  * Stringifies JSON objects for sector and country allocations.
  *
+ * Maintains backward compatibility by writing both security_type and is_etf.
+ *
  * @param stock - Stock object
  * @returns Object ready for database insertion/update
  */
@@ -147,7 +164,8 @@ function stockToRow(stock: Stock) {
     style: stock.style,
     is_domestic: stock.isDomestic ? 1 : 0,
     last_updated: stock.lastUpdated,
-    is_etf: stock.isEtf ? 1 : 0,
+    security_type: stock.securityType,
+    is_etf: stock.securityType === "etf" ? 1 : 0, // Maintain backward compatibility
     description: stock.description || null,
     sector_allocations: stock.sectorAllocations
       ? JSON.stringify(stock.sectorAllocations)
@@ -201,9 +219,9 @@ export const stockService = {
       INSERT INTO stocks (
         ticker, name, current_price, annual_dividend,
         sector, country, market_cap, style, is_domestic, last_updated,
-        is_etf, description, sector_allocations, country_allocations
+        security_type, is_etf, description, sector_allocations, country_allocations
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(ticker) DO UPDATE SET
         name = excluded.name,
         current_price = excluded.current_price,
@@ -214,6 +232,7 @@ export const stockService = {
         style = excluded.style,
         is_domestic = excluded.is_domestic,
         last_updated = excluded.last_updated,
+        security_type = excluded.security_type,
         is_etf = excluded.is_etf,
         description = excluded.description,
         sector_allocations = excluded.sector_allocations,
@@ -231,6 +250,7 @@ export const stockService = {
       rowData.style,
       rowData.is_domestic,
       rowData.last_updated,
+      rowData.security_type,
       rowData.is_etf,
       rowData.description,
       rowData.sector_allocations,
@@ -266,6 +286,7 @@ export const stockService = {
           style = ?,
           is_domestic = ?,
           last_updated = ?,
+          security_type = ?,
           is_etf = ?,
           description = ?,
           sector_allocations = ?,
@@ -283,6 +304,7 @@ export const stockService = {
       rowData.style,
       rowData.is_domestic,
       rowData.last_updated,
+      rowData.security_type,
       rowData.is_etf,
       rowData.description,
       rowData.sector_allocations,

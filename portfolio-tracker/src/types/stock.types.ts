@@ -7,6 +7,15 @@
  */
 
 /**
+ * Security type classification.
+ *
+ * - `stock`: Individual company stock
+ * - `etf`: Exchange-Traded Fund
+ * - `mutualfund`: Mutual Fund
+ */
+export type SecurityType = "stock" | "etf" | "mutualfund";
+
+/**
  * Market capitalization classification for stocks.
  *
  * Categories based on company size:
@@ -64,21 +73,21 @@ export interface CountryAllocationMap {
 /**
  * Complete snapshot of stock market data.
  *
- * This data is fetched from Finnhub API and stored with each holding as a JSON snapshot
+ * This data is fetched from API providers and stored with each holding as a JSON snapshot
  * in the database. Storing snapshots reduces API calls, improves performance, and
  * preserves historical data for each position.
  *
- * For ETFs, the optional fields (isEtf, description, sectorAllocations, countryAllocations)
+ * For ETFs and mutual funds, the optional fields (description, sectorAllocations, countryAllocations)
  * enable proportional allocation across multiple sectors and countries.
  */
 export interface StockData {
-  /** Stock ticker symbol (e.g., "AAPL", "MSFT") */
+  /** Stock ticker symbol (e.g., "AAPL", "MSFT", "FXAIX") */
   ticker: string;
 
-  /** Company name (e.g., "Apple Inc.", "Microsoft Corporation") */
+  /** Company or fund name (e.g., "Apple Inc.", "Fidelity 500 Index Fund") */
   name: string;
 
-  /** Current stock price in USD */
+  /** Current price in USD */
   currentPrice: number;
 
   /** Annual dividend payment per share in USD */
@@ -96,22 +105,25 @@ export interface StockData {
   /** Investment style classification */
   style: Style;
 
-  /** Whether the stock is a US domestic company */
+  /** Whether this is a US domestic security */
   isDomestic: boolean;
 
-  /** Unix timestamp in milliseconds when this data was last fetched from Finnhub */
+  /** Unix timestamp in milliseconds when this data was last updated */
   lastUpdated: number;
 
-  /** Whether this is an ETF (Exchange-Traded Fund) rather than a stock */
+  /** Security type classification */
+  securityType: SecurityType;
+
+  /** @deprecated Use securityType instead. Whether this is an ETF (Exchange-Traded Fund) */
   isEtf: boolean;
 
-  /** ETF description (optional, for ETFs only) */
+  /** Description (optional, for ETFs and mutual funds) */
   description?: string;
 
-  /** Sector allocation percentages for ETFs (optional, for proportional analytics) */
+  /** Sector allocation percentages for ETFs and mutual funds (optional, for proportional analytics) */
   sectorAllocations?: SectorAllocationMap;
 
-  /** Country allocation percentages for ETFs (optional, for proportional analytics) */
+  /** Country allocation percentages for ETFs and mutual funds (optional, for proportional analytics) */
   countryAllocations?: CountryAllocationMap;
 }
 
@@ -160,4 +172,14 @@ export interface EtfData {
  */
 export interface StockDatabase {
   [ticker: string]: StockData | EtfData;
+}
+
+/**
+ * Helper function to check if a security is an ETF or mutual fund.
+ *
+ * @param stock - The stock data to check
+ * @returns true if the security is an ETF or mutual fund, false otherwise
+ */
+export function isEtfOrMutualFund(stock: StockData): boolean {
+  return stock.securityType === "etf" || stock.securityType === "mutualfund";
 }

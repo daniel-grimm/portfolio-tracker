@@ -120,5 +120,19 @@ export function runMigrations(db: Database.Database): void {
   addColumnIfNotExists(db, 'stocks', 'country_allocations', 'TEXT');
   addColumnIfNotExists(db, 'stocks', 'description', 'TEXT');
 
+  // Add security_type column for stocks/ETFs/mutual funds
+  addColumnIfNotExists(db, 'stocks', 'security_type', 'TEXT');
+
+  // Migrate existing data to use security_type
+  // This is safe to run multiple times - only updates rows where security_type is NULL
+  db.exec(`
+    UPDATE stocks
+    SET security_type = CASE
+      WHEN is_etf = 1 THEN 'etf'
+      ELSE 'stock'
+    END
+    WHERE security_type IS NULL;
+  `);
+
   console.log('Database migrations completed successfully');
 }

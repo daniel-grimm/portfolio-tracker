@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Stock, Position, AggregatedPosition } from '../types/portfolio.types';
+import type { Account } from '../types/account.types';
 import { stocksApi } from '../services/stocksApi';
 import { positionsApi } from '../services/positionsApi';
+import { accountsApi } from '../services/accountsApi';
 
 interface PortfolioContextType {
   // Aggregated positions for display (one row per ticker)
   aggregatedPositions: AggregatedPosition[];
   // All available stocks
   stocks: Stock[];
+  // All available accounts
+  accounts: Account[];
   isLoading: boolean;
   error: string | null;
 
@@ -25,6 +29,12 @@ interface PortfolioContextType {
   deleteAllPositionsForTicker: (ticker: string) => Promise<void>;
   refreshPositions: () => Promise<void>;
 
+  // Account management
+  addAccount: (account: Omit<Account, 'id'>) => Promise<void>;
+  updateAccount: (id: string, account: Omit<Account, 'id'>) => Promise<void>;
+  deleteAccount: (id: string) => Promise<void>;
+  refreshAccounts: () => Promise<void>;
+
   // Refresh everything
   refresh: () => Promise<void>;
 }
@@ -38,6 +48,7 @@ interface PortfolioProviderProps {
 export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }) => {
   const [aggregatedPositions, setAggregatedPositions] = useState<AggregatedPosition[]>([]);
   const [stocks, setStocks] = useState<Stock[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,12 +76,24 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     }
   };
 
+  // Refresh all accounts
+  const refreshAccounts = async () => {
+    try {
+      setError(null);
+      const allAccounts = await accountsApi.getAll();
+      setAccounts(allAccounts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch accounts');
+      console.error('Error fetching accounts:', err);
+    }
+  };
+
   // Refresh everything
   const refresh = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      await Promise.all([refreshStocks(), refreshPositions()]);
+      await Promise.all([refreshStocks(), refreshPositions(), refreshAccounts()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh portfolio');
       console.error('Error refreshing portfolio:', err);
@@ -179,9 +202,49 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     }
   };
 
+  // Account management
+  const addAccount = async (account: Omit<Account, 'id'>) => {
+    try {
+      setError(null);
+      const newAccount = await accountsApi.create(account);
+      setAccounts((prev) => [...prev, newAccount]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add account');
+      console.error('Error adding account:', err);
+      throw err;
+    }
+  };
+
+  const updateAccount = async (id: string, account: Omit<Account, 'id'>) => {
+    try {
+      setError(null);
+      const updated = await accountsApi.update(id, account);
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === id ? updated : a))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update account');
+      console.error('Error updating account:', err);
+      throw err;
+    }
+  };
+
+  const deleteAccount = async (id: string) => {
+    try {
+      setError(null);
+      await accountsApi.delete(id);
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete account');
+      console.error('Error deleting account:', err);
+      throw err;
+    }
+  };
+
   const value: PortfolioContextType = {
     aggregatedPositions,
     stocks,
+    accounts,
     isLoading,
     error,
     addStock,
@@ -193,6 +256,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     deletePosition,
     deleteAllPositionsForTicker,
     refreshPositions,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+    refreshAccounts,
     refresh,
   };
 

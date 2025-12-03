@@ -31,6 +31,9 @@ export interface Position {
 
   /** Optional purchase date in ISO 8601 format (YYYY-MM-DD) */
   purchaseDate?: string;
+
+  /** Optional account ID (UUID) for associating position with a brokerage account */
+  accountId?: string | null;
 }
 
 /**

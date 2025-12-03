@@ -15,6 +15,9 @@ import {
   CircularProgress,
   Typography,
   Box,
+  Select,
+  MenuItem,
+  FormControl,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -32,6 +35,7 @@ interface EditPositionsDialogProps {
 }
 
 interface EditingPosition {
+  accountId: string;
   quantity: string;
   costBasis: string;
   purchaseDate: string;
@@ -42,7 +46,7 @@ export function EditPositionsDialog({
   onClose,
   positionMetadata,
 }: EditPositionsDialogProps) {
-  const { updatePosition, deletePosition } = usePortfolio();
+  const { updatePosition, deletePosition, accounts } = usePortfolio();
 
   // Editing state
   const [editingPositionId, setEditingPositionId] = useState<string | null>(
@@ -83,6 +87,7 @@ export function EditPositionsDialog({
   const handleEdit = (position: Position) => {
     setEditingPositionId(position.id);
     setEditingValues({
+      accountId: position.accountId || "",
       quantity: position.quantity.toString(),
       costBasis: position.costBasis.toString(),
       purchaseDate: position.purchaseDate || "",
@@ -178,6 +183,7 @@ export function EditPositionsDialog({
         quantity: parseFloat(editingValues.quantity),
         costBasis: parseFloat(editingValues.costBasis),
         purchaseDate: editingValues.purchaseDate || undefined,
+        accountId: editingValues.accountId || undefined,
       };
 
       await updatePosition(positionId, updatedPosition);
@@ -225,7 +231,7 @@ export function EditPositionsDialog({
   if (!positionMetadata) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ backgroundColor: "background.default" }}>
         <Box>
           {positionMetadata.ticker}
@@ -262,6 +268,7 @@ export function EditPositionsDialog({
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell>Account</TableCell>
                 <TableCell align="right">Quantity</TableCell>
                 <TableCell align="right">Cost Basis</TableCell>
                 <TableCell align="right">Purchase Date</TableCell>
@@ -274,9 +281,47 @@ export function EditPositionsDialog({
                 const isEditing = editingPositionId === position.id;
                 const isLoading = loadingPositionId === position.id;
                 const totalCost = position.quantity * position.costBasis;
+                const positionAccount = accounts.find(
+                  (a) => a.id === position.accountId
+                );
 
                 return (
                   <TableRow key={position.id}>
+                    {/* Account */}
+                    <TableCell>
+                      {isEditing && editingValues ? (
+                        <FormControl size="small" fullWidth>
+                          <Select
+                            value={editingValues.accountId}
+                            onChange={(e) =>
+                              handleFieldChange("accountId", e.target.value)
+                            }
+                            displayEmpty
+                          >
+                            <MenuItem
+                              value=""
+                              sx={{ backgroundColor: "background.default" }}
+                            >
+                              <em>Unassigned</em>
+                            </MenuItem>
+                            {accounts.map((account) => (
+                              <MenuItem
+                                key={account.id}
+                                value={account.id}
+                                sx={{ backgroundColor: "background.default" }}
+                              >
+                                {account.name} ({account.platform})
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      ) : positionAccount ? (
+                        `${positionAccount.name} (${positionAccount.platform})`
+                      ) : (
+                        "Unassigned"
+                      )}
+                    </TableCell>
+
                     {/* Quantity */}
                     <TableCell align="right">
                       {isEditing && editingValues ? (

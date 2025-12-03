@@ -7,14 +7,17 @@ import { StocksTable } from "../components/stocks/StocksTable";
 import { AddStockDialog } from "../components/portfolio/AddStockDialog";
 import { EditStockDialog } from "../components/stocks/EditStockDialog";
 import { ConfirmDeleteDialog } from "../components/portfolio/ConfirmDeleteDialog";
+import { fetchStockQuote } from "../services/finnhubService";
+import { fetchMutualFundQuote } from "../services/alphaVantageService";
 
 export function Tickers() {
-  const { stocks, aggregatedPositions, deleteStock } = usePortfolio();
+  const { stocks, aggregatedPositions, deleteStock, updateStock } = usePortfolio();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [stockToEdit, setStockToEdit] = useState<Stock | null>(null);
   const [tickerToDelete, setTickerToDelete] = useState<string | null>(null);
+  const [refreshingTicker, setRefreshingTicker] = useState<string | null>(null);
 
   const handleEdit = (stock: Stock) => {
     setStockToEdit(stock);
@@ -41,6 +44,37 @@ export function Tickers() {
   const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setStockToEdit(null);
+  };
+
+  const handleRefresh = async (ticker: string) => {
+    const stock = stocks.find((s) => s.ticker === ticker);
+    if (!stock) return;
+
+    try {
+      setRefreshingTicker(ticker);
+
+      // Fetch new price based on security type
+      let newPrice: number;
+      if (stock.securityType === "mutualfund") {
+        const quote = await fetchMutualFundQuote(ticker);
+        newPrice = quote.c;
+      } else {
+        // stocks and ETFs both use Finnhub
+        const quote = await fetchStockQuote(ticker);
+        newPrice = quote.c;
+      }
+
+      // Update stock with new price and timestamp
+      await updateStock(ticker, {
+        currentPrice: newPrice,
+        lastUpdated: Date.now(),
+      });
+    } catch (error) {
+      console.error(`Failed to refresh price for ${ticker}:`, error);
+      // Could show a toast/snackbar here in the future
+    } finally {
+      setRefreshingTicker(null);
+    }
   };
 
   // Calculate position count for the selected ticker
@@ -73,6 +107,8 @@ export function Tickers() {
         stocks={stocks}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onRefresh={handleRefresh}
+        refreshing={refreshingTicker}
       />
 
       <AddStockDialog

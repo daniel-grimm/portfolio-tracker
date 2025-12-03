@@ -845,7 +845,13 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
           {loading ? (
             <CircularProgress size={24} />
           ) : (
-            `Add ${securityType === "stock" ? "Stock" : "ETF"}`
+            `Add ${
+              securityType === "stock"
+                ? "Stock"
+                : securityType === "etf"
+                ? "ETF"
+                : "Mutual Fund"
+            }`
           )}
         </Button>
       </DialogActions>

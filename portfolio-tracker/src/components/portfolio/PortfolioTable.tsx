@@ -11,13 +11,14 @@ import {
   Box,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { PositionMetadata } from "../../types/portfolio.types";
 import { PositionRow } from "./PositionRow";
 import { AddStockDialog } from "./AddStockDialog";
 import { AddPositionDialog } from "./AddPositionDialog";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { EditPositionsDialog } from "./EditPositionsDialog";
+import { ManageAccountsDialog } from "./ManageAccountsDialog";
 import { usePortfolio } from "../../context/PortfolioContext";
 
 interface PortfolioTableProps {
@@ -25,15 +26,28 @@ interface PortfolioTableProps {
 }
 
 export function PortfolioTable({ positions }: PortfolioTableProps) {
-  const { deleteAllPositionsForTicker } = usePortfolio();
+  const { deleteAllPositionsForTicker, aggregatedPositions } = usePortfolio();
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+  const [accountsDialogOpen, setAccountsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tickerToDelete, setTickerToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [positionToEdit, setPositionToEdit] = useState<PositionMetadata | null>(
     null
   );
+
+  // Sync positionToEdit with updated aggregatedPositions
+  useEffect(() => {
+    if (positionToEdit && editDialogOpen) {
+      const updatedPosition = aggregatedPositions.find(
+        (p) => p.ticker === positionToEdit.ticker
+      );
+      if (updatedPosition) {
+        setPositionToEdit(updatedPosition);
+      }
+    }
+  }, [aggregatedPositions, positionToEdit, editDialogOpen]);
 
   const handleEdit = (position: PositionMetadata) => {
     setPositionToEdit(position);
@@ -81,6 +95,12 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
           <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
             <Button
               variant="outlined"
+              onClick={() => setAccountsDialogOpen(true)}
+            >
+              Manage Accounts
+            </Button>
+            <Button
+              variant="outlined"
               startIcon={<AddIcon />}
               onClick={() => setStockDialogOpen(true)}
             >
@@ -121,6 +141,10 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
           onClose={handleCloseEditDialog}
           positionMetadata={positionToEdit}
         />
+        <ManageAccountsDialog
+          open={accountsDialogOpen}
+          onClose={() => setAccountsDialogOpen(false)}
+        />
       </>
     );
   }
@@ -137,6 +161,12 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
       >
         <Typography variant="h6">Portfolio Positions</Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setAccountsDialogOpen(true)}
+          >
+            Manage Accounts
+          </Button>
           <Button
             variant="outlined"
             startIcon={<AddIcon />}
@@ -208,6 +238,10 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
         open={editDialogOpen}
         onClose={handleCloseEditDialog}
         positionMetadata={positionToEdit}
+      />
+      <ManageAccountsDialog
+        open={accountsDialogOpen}
+        onClose={() => setAccountsDialogOpen(false)}
       />
     </>
   );

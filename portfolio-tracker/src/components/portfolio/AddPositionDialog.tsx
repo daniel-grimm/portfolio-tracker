@@ -25,9 +25,10 @@ interface AddPositionDialogProps {
 }
 
 export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
-  const { addPosition, stocks } = usePortfolio();
+  const { addPosition, stocks, accounts } = usePortfolio();
 
   // Form fields
+  const [accountId, setAccountId] = useState("");
   const [ticker, setTicker] = useState("");
   const [quantity, setQuantity] = useState("");
   const [costBasis, setCostBasis] = useState("");
@@ -45,6 +46,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
   }, [open]);
 
   const resetForm = () => {
+    setAccountId("");
     setTicker("");
     setQuantity("");
     setCostBasis("");
@@ -55,6 +57,10 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
+
+    if (!accountId) {
+      newErrors.accountId = "Please select an account";
+    }
 
     if (!ticker) {
       newErrors.ticker = "Please select a ticker";
@@ -84,6 +90,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
       quantity: parseFloat(quantity),
       costBasis: parseFloat(costBasis),
       purchaseDate: purchaseDate || undefined,
+      accountId: accountId || undefined,
     };
 
     try {
@@ -123,6 +130,50 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
             mt: 1,
           }}
         >
+          {/* Warning if no accounts */}
+          {accounts.length === 0 && (
+            <Alert severity="warning">
+              No accounts available. Please add an account first before creating a
+              position.
+            </Alert>
+          )}
+
+          {/* Account Selection */}
+          <FormControl required error={!!errors.accountId} fullWidth>
+            <InputLabel>Select Account</InputLabel>
+            <Select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              label="Select Account"
+            >
+              {accounts.length === 0 ? (
+                <MenuItem
+                  disabled
+                  sx={{ backgroundColor: "background.default" }}
+                >
+                  No accounts available. Add an account first.
+                </MenuItem>
+              ) : (
+                accounts.map((account) => (
+                  <MenuItem
+                    key={account.id}
+                    value={account.id}
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    {account.name} ({account.platform})
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+            {errors.accountId && <FormHelperText>{errors.accountId}</FormHelperText>}
+          </FormControl>
+
           {/* Stock Selection */}
           <FormControl required error={!!errors.ticker} fullWidth>
             <InputLabel>Select Stock</InputLabel>
@@ -232,13 +283,6 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
             }}
           />
 
-          {/* Warning if no stocks */}
-          {stocks.length === 0 && (
-            <Alert severity="warning">
-              No stocks available. Please add a stock first before creating a
-              position.
-            </Alert>
-          )}
         </Box>
       </DialogContent>
       <DialogActions sx={{ backgroundColor: "background.default" }}>
@@ -248,7 +292,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={loading || stocks.length === 0}
+          disabled={loading || stocks.length === 0 || accounts.length === 0}
         >
           {loading ? <CircularProgress size={24} /> : "Add Position"}
         </Button>

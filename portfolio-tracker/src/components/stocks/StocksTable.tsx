@@ -10,9 +10,11 @@ import {
   IconButton,
   Box,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import type { Stock } from "../../types/portfolio.types";
 import { formatCurrency, formatPercent } from "../../utils/formatters";
 
@@ -20,9 +22,11 @@ interface StocksTableProps {
   stocks: Stock[];
   onEdit: (stock: Stock) => void;
   onDelete: (ticker: string) => void;
+  onRefresh: (ticker: string) => Promise<void>;
+  refreshing: string | null;
 }
 
-export function StocksTable({ stocks, onEdit, onDelete }: StocksTableProps) {
+export function StocksTable({ stocks, onEdit, onDelete, onRefresh, refreshing }: StocksTableProps) {
   const sortedStocks = [...stocks].sort((a, b) =>
     a.ticker.localeCompare(b.ticker)
   );
@@ -107,6 +111,18 @@ export function StocksTable({ stocks, onEdit, onDelete }: StocksTableProps) {
                   color="primary"
                 >
                   <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => onRefresh(stock.ticker)}
+                  color="primary"
+                  disabled={refreshing === stock.ticker}
+                >
+                  {refreshing === stock.ticker ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <RefreshIcon fontSize="small" />
+                  )}
                 </IconButton>
                 <IconButton
                   size="small"

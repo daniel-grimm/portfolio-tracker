@@ -22,6 +22,7 @@ export interface Position {
   quantity: number;
   costBasis: number;
   purchaseDate?: string;
+  accountId?: string | null; // Optional for backward compatibility
 }
 
 /**
@@ -57,6 +58,7 @@ interface PositionRow {
   quantity: number;
   cost_basis: number;
   purchase_date: string | null;
+  account_id: string | null;
   created_at: number;
 }
 
@@ -94,6 +96,7 @@ function rowToPosition(row: PositionRow): Position {
     quantity: row.quantity,
     costBasis: row.cost_basis,
     purchaseDate: row.purchase_date || undefined,
+    accountId: row.account_id || undefined,
   };
 }
 
@@ -110,6 +113,7 @@ function rowToPositionWithStock(row: PositionWithStockRow): PositionWithStock {
     quantity: row.quantity,
     costBasis: row.cost_basis,
     purchaseDate: row.purchase_date || undefined,
+    accountId: row.account_id || undefined,
     stock: {
       ticker: row.ticker,
       name: row.name,
@@ -146,6 +150,7 @@ function positionToRow(position: Omit<Position, 'id'> & { id?: string }) {
     quantity: position.quantity,
     cost_basis: position.costBasis,
     purchase_date: position.purchaseDate || null,
+    account_id: position.accountId || null,
   };
 }
 
@@ -161,7 +166,7 @@ export const positionsService = {
   getAll(): PositionWithStock[] {
     const stmt = db.prepare(`
       SELECT
-        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.created_at,
+        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
         s.is_etf, s.description, s.sector_allocations, s.country_allocations
@@ -183,7 +188,7 @@ export const positionsService = {
   getByTicker(ticker: string): PositionWithStock[] {
     const stmt = db.prepare(`
       SELECT
-        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.created_at,
+        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
         s.is_etf, s.description, s.sector_allocations, s.country_allocations
@@ -206,7 +211,7 @@ export const positionsService = {
   getById(id: string): PositionWithStock | null {
     const stmt = db.prepare(`
       SELECT
-        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.created_at,
+        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
         s.is_etf, s.description, s.sector_allocations, s.country_allocations
@@ -240,8 +245,8 @@ export const positionsService = {
     const rowData = positionToRow({ ...position, id });
 
     const stmt = db.prepare(`
-      INSERT INTO positions (id, ticker, quantity, cost_basis, purchase_date)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO positions (id, ticker, quantity, cost_basis, purchase_date, account_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -249,7 +254,8 @@ export const positionsService = {
       rowData.ticker.toUpperCase(),
       rowData.quantity,
       rowData.cost_basis,
-      rowData.purchase_date
+      rowData.purchase_date,
+      rowData.account_id
     );
 
     return {
@@ -279,7 +285,8 @@ export const positionsService = {
       UPDATE positions
       SET quantity = ?,
           cost_basis = ?,
-          purchase_date = ?
+          purchase_date = ?,
+          account_id = ?
       WHERE id = ?
     `);
 
@@ -287,6 +294,7 @@ export const positionsService = {
       rowData.quantity,
       rowData.cost_basis,
       rowData.purchase_date,
+      rowData.account_id,
       id
     );
 
@@ -376,6 +384,7 @@ export const positionsService = {
           quantity: p.quantity,
           costBasis: p.costBasis,
           purchaseDate: p.purchaseDate,
+          accountId: p.accountId,
         })),
         oldestPurchaseDate: purchaseDates[0],
         newestPurchaseDate: purchaseDates[purchaseDates.length - 1],
@@ -383,5 +392,28 @@ export const positionsService = {
     });
 
     return aggregated;
+  },
+
+  /**
+   * Retrieves all positions for a specific account.
+   *
+   * @param accountId - Account ID (UUID)
+   * @returns Array of positions for this account with stock data
+   */
+  getByAccountId(accountId: string): PositionWithStock[] {
+    const stmt = db.prepare(`
+      SELECT
+        p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
+        s.name, s.current_price, s.annual_dividend, s.sector,
+        s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
+        s.is_etf, s.description, s.sector_allocations, s.country_allocations
+      FROM positions p
+      JOIN stocks s ON p.ticker = s.ticker
+      WHERE p.account_id = ?
+      ORDER BY p.created_at DESC
+    `);
+
+    const rows = stmt.all(accountId) as PositionWithStockRow[];
+    return rows.map(rowToPositionWithStock);
   },
 };

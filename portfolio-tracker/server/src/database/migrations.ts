@@ -134,5 +134,26 @@ export function runMigrations(db: Database.Database): void {
     WHERE security_type IS NULL;
   `);
 
+  // Create accounts table for brokerage account management
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS accounts (
+      -- UUID primary key for unique account identification
+      id TEXT PRIMARY KEY,
+
+      -- Account name (e.g., "My Fidelity 401k", "Robinhood Trading")
+      name TEXT NOT NULL,
+
+      -- Platform/broker (Fidelity, Robinhood, Vanguard, etc.)
+      platform TEXT NOT NULL,
+
+      -- Unix timestamp in seconds when account was created
+      created_at INTEGER DEFAULT (unixepoch())
+    );
+  `);
+
+  // Add account_id column to positions table (idempotent migration)
+  // NULL allowed for backward compatibility with existing positions
+  addColumnIfNotExists(db, 'positions', 'account_id', 'TEXT');
+
   console.log('Database migrations completed successfully');
 }

@@ -64,6 +64,7 @@ export function StocksTable({ stocks, onEdit, onDelete, onRefresh, refreshing }:
             <TableCell>Ticker</TableCell>
             <TableCell>Name</TableCell>
             <TableCell align="right">Current Price</TableCell>
+            <TableCell align="right">Annual Dividend</TableCell>
             <TableCell align="right">Div Yield</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
@@ -100,6 +101,9 @@ export function StocksTable({ stocks, onEdit, onDelete, onRefresh, refreshing }:
               </TableCell>
               <TableCell align="right">
                 {formatCurrency(stock.currentPrice)}
+              </TableCell>
+              <TableCell align="right">
+                {formatCurrency(stock.annualDividend)}
               </TableCell>
               <TableCell align="right">
                 {formatPercent(calculateDividendYield(stock))}

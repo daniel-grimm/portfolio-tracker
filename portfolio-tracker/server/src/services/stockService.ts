@@ -264,16 +264,23 @@ export const stockService = {
    * Updates an existing stock in the database.
    *
    * @param ticker - Stock ticker to update
-   * @param stock - Updated stock data
+   * @param stockUpdate - Partial stock data to update (will be merged with existing data)
    * @returns The updated stock if found, null if stock doesn't exist
    */
-  update(ticker: string, stock: Stock): Stock | null {
+  update(ticker: string, stockUpdate: Partial<Stock>): Stock | null {
     const existing = this.getByTicker(ticker);
     if (!existing) {
       return null;
     }
 
-    const rowData = stockToRow(stock);
+    // Merge the update with existing data to preserve fields not being updated
+    const mergedStock: Stock = {
+      ...existing,
+      ...stockUpdate,
+      ticker: existing.ticker, // Ensure ticker doesn't change
+    };
+
+    const rowData = stockToRow(mergedStock);
 
     const stmt = db.prepare(`
       UPDATE stocks
@@ -312,7 +319,7 @@ export const stockService = {
       ticker.toUpperCase()
     );
 
-    return stock;
+    return mergedStock;
   },
 
   /**

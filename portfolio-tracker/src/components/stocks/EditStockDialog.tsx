@@ -45,7 +45,11 @@ interface AllocationRow {
   percentage: string;
 }
 
-export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) {
+export function EditStockDialog({
+  open,
+  onClose,
+  stock,
+}: EditStockDialogProps) {
   const { updateStock } = usePortfolio();
 
   // Form fields
@@ -274,13 +278,15 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
         : undefined;
 
     // Determine dominant sector and country for ETFs
-    const dominantSector = isEtfOrMutualFund(stock) && sectorRows.length > 0
-      ? (sectorRows[0].name as Sector)
-      : (sector as Sector);
+    const dominantSector =
+      isEtfOrMutualFund(stock) && sectorRows.length > 0
+        ? (sectorRows[0].name as Sector)
+        : (sector as Sector);
 
-    const dominantCountry = isEtfOrMutualFund(stock) && countryRows.length > 0
-      ? countryRows[0].name
-      : stock.country;
+    const dominantCountry =
+      isEtfOrMutualFund(stock) && countryRows.length > 0
+        ? countryRows[0].name
+        : stock.country;
 
     const updatedStock: Stock = {
       ticker: stock.ticker,
@@ -321,16 +327,20 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
   }
 
   return (
-    <Dialog open={open} onClose={!loading ? onClose : undefined} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={!loading ? onClose : undefined}
+      maxWidth="md"
+      fullWidth
+    >
       <DialogTitle sx={{ backgroundColor: "background.default" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          Edit {
-            stock.securityType === "etf"
-              ? "ETF"
-              : stock.securityType === "mutualfund"
-              ? "Mutual Fund"
-              : "Stock"
-          }
+          Edit{" "}
+          {stock.securityType === "etf"
+            ? "ETF"
+            : stock.securityType === "mutualfund"
+            ? "Mutual Fund"
+            : "Stock"}
           <Chip
             label={
               stock.securityType === "etf"
@@ -415,7 +425,11 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
                   label="Sector"
                 >
                   {SECTORS.map((s) => (
-                    <MenuItem key={s} value={s}>
+                    <MenuItem
+                      key={s}
+                      value={s}
+                      sx={{ backgroundColor: "background.default" }}
+                    >
                       {s}
                     </MenuItem>
                   ))}
@@ -434,7 +448,11 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
                   label="Market Cap"
                 >
                   {MARKET_CAPS.map((cap) => (
-                    <MenuItem key={cap} value={cap}>
+                    <MenuItem
+                      key={cap}
+                      value={cap}
+                      sx={{ backgroundColor: "background.default" }}
+                    >
                       {cap.charAt(0).toUpperCase() + cap.slice(1)}
                     </MenuItem>
                   ))}
@@ -466,7 +484,11 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
                   label="Market Cap"
                 >
                   {MARKET_CAPS.map((cap) => (
-                    <MenuItem key={cap} value={cap}>
+                    <MenuItem
+                      key={cap}
+                      value={cap}
+                      sx={{ backgroundColor: "background.default" }}
+                    >
                       {cap.charAt(0).toUpperCase() + cap.slice(1)}
                     </MenuItem>
                   ))}
@@ -478,7 +500,13 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
 
               {/* Sector Allocations */}
               <Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="subtitle2">
                     Sector Allocations (%)
                   </Typography>
@@ -503,7 +531,11 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
                         label="Sector"
                       >
                         {SECTORS.map((s) => (
-                          <MenuItem key={s} value={s}>
+                          <MenuItem
+                            key={s}
+                            value={s}
+                            sx={{ backgroundColor: "background.default" }}
+                          >
                             {s}
                           </MenuItem>
                         ))}
@@ -543,7 +575,13 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
 
               {/* Country Allocations */}
               <Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="subtitle2">
                     Country Allocations (%)
                   </Typography>
@@ -609,7 +647,11 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
               label="Style"
             >
               {STYLES.map((s) => (
-                <MenuItem key={s} value={s}>
+                <MenuItem
+                  key={s}
+                  value={s}
+                  sx={{ backgroundColor: "background.default" }}
+                >
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </MenuItem>
               ))}
@@ -629,11 +671,7 @@ export function EditStockDialog({ open, onClose, stock }: EditStockDialogProps) 
         <Button onClick={onClose} disabled={loading}>
           Cancel
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-        >
+        <Button onClick={handleSubmit} variant="contained" disabled={loading}>
           {loading ? <CircularProgress size={24} /> : "Update Stock"}
         </Button>
       </DialogActions>

@@ -72,7 +72,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
     }
 
     const costBasisNum = parseFloat(costBasis);
-    if (!costBasis || isNaN(costBasisNum) || costBasisNum <= 0) {
+    if (!costBasis || isNaN(costBasisNum) || costBasisNum < 0) {
       newErrors.costBasis = "Cost basis must be greater than 0";
     }
 
@@ -133,8 +133,8 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
           {/* Warning if no accounts */}
           {accounts.length === 0 && (
             <Alert severity="warning">
-              No accounts available. Please add an account first before creating a
-              position.
+              No accounts available. Please add an account first before creating
+              a position.
             </Alert>
           )}
 
@@ -171,7 +171,9 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
                 ))
               )}
             </Select>
-            {errors.accountId && <FormHelperText>{errors.accountId}</FormHelperText>}
+            {errors.accountId && (
+              <FormHelperText>{errors.accountId}</FormHelperText>
+            )}
           </FormControl>
 
           {/* Stock Selection */}
@@ -282,7 +284,6 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
               shrink: true,
             }}
           />
-
         </Box>
       </DialogContent>
       <DialogActions sx={{ backgroundColor: "background.default" }}>

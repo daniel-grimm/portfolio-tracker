@@ -34,7 +34,8 @@ export function GeographicBreakdown({ allocation }: GeographicBreakdownProps) {
       value: parseFloat(value.toFixed(2)),
     }))
     .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
 
   if (data.length === 0) {
     return (

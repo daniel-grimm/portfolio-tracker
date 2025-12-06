@@ -39,7 +39,7 @@ import {
 } from "../../services/finnhubService";
 import { fetchMutualFundQuote } from "../../services/alphaVantageService";
 import { classifyMarketCap } from "../../services/stockDataService";
-import { SECTORS, STYLES } from "../../data/constants";
+import { SECTORS, STYLES, MARKET_CAPS } from "../../data/constants";
 
 interface AddStockDialogProps {
   open: boolean;
@@ -62,14 +62,14 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
   // Form fields
   const [ticker, setTicker] = useState("");
   const [sector, setSector] = useState<Sector | "">("");
-  const [style, setStyle] = useState<Style | "">("");
+  const [style, setStyle] = useState<Style | "">("blend");
   const [annualDividend, setAnnualDividend] = useState("");
 
   // Fetched data
   const [companyName, setCompanyName] = useState("");
   const [currentPrice, setCurrentPrice] = useState("");
   const [country, setCountry] = useState("");
-  const [marketCap, setMarketCap] = useState("");
+  const [marketCap, setMarketCap] = useState<MarketCap | "">("large");
 
   // ETF-specific fields
   const [description, setDescription] = useState("");
@@ -94,12 +94,12 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
     setSecurityType("stock");
     setTicker("");
     setSector("");
-    setStyle("");
+    setStyle("blend");
     setAnnualDividend("0");
     setCompanyName("");
     setCurrentPrice("");
     setCountry("");
-    setMarketCap("");
+    setMarketCap("large");
     setDescription("");
     setSectorRows([]);
     setCountryRows([]);
@@ -317,10 +317,6 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
         newErrors.name = `Please enter ${securityLabel} name`;
       }
 
-      if (!marketCap) {
-        newErrors.marketCap = "Please select market cap";
-      }
-
       // Validation warnings for allocation percentages (not errors, just warnings)
       const sectorTotal = calculateTotalPercentage(sectorRows);
       if (sectorRows.length > 0 && Math.abs(sectorTotal - 100) > 5) {
@@ -340,10 +336,14 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       if (!sector) {
         newErrors.sector = "Please select a sector";
       }
-    }
 
-    if (!style) {
-      newErrors.style = "Please select a style";
+      if (!marketCap) {
+        newErrors.marketCap = "Please select market cap";
+      }
+
+      if (!style) {
+        newErrors.style = "Please select a style";
+      }
     }
 
     const dividendNum = parseFloat(annualDividend);
@@ -399,8 +399,8 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       annualDividend: parseFloat(annualDividend) || 0,
       sector: dominantSector,
       country: dominantCountry,
-      marketCap: marketCap as MarketCap,
-      style: style as Style,
+      marketCap: securityType === "stock" ? (marketCap as MarketCap) : "large",
+      style: securityType === "stock" ? (style as Style) : "blend",
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
       securityType: securityType,
@@ -565,78 +565,6 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
                 rows={2}
                 placeholder={securityType === "etf" ? "Brief description of the ETF's strategy" : "Brief description of the mutual fund's strategy"}
               />
-              <FormControl required error={!!errors.marketCap}>
-                <InputLabel>Market Cap</InputLabel>
-                <Select
-                  value={marketCap}
-                  onChange={(e) => setMarketCap(e.target.value)}
-                  label="Market Cap"
-                >
-                  <MenuItem
-                    value="mega"
-                    sx={{
-                      backgroundColor: "background.default",
-                      "&:hover": {
-                        backgroundColor: "background.default",
-                        color: "text.primary",
-                      },
-                    }}
-                  >
-                    Mega Cap
-                  </MenuItem>
-                  <MenuItem
-                    value="large"
-                    sx={{
-                      backgroundColor: "background.default",
-                      "&:hover": {
-                        backgroundColor: "background.default",
-                        color: "text.primary",
-                      },
-                    }}
-                  >
-                    Large Cap
-                  </MenuItem>
-                  <MenuItem
-                    value="mid"
-                    sx={{
-                      backgroundColor: "background.default",
-                      "&:hover": {
-                        backgroundColor: "background.default",
-                        color: "text.primary",
-                      },
-                    }}
-                  >
-                    Mid Cap
-                  </MenuItem>
-                  <MenuItem
-                    value="small"
-                    sx={{
-                      backgroundColor: "background.default",
-                      "&:hover": {
-                        backgroundColor: "background.default",
-                        color: "text.primary",
-                      },
-                    }}
-                  >
-                    Small Cap
-                  </MenuItem>
-                  <MenuItem
-                    value="micro"
-                    sx={{
-                      backgroundColor: "background.default",
-                      "&:hover": {
-                        backgroundColor: "background.default",
-                        color: "text.primary",
-                      },
-                    }}
-                  >
-                    Micro Cap
-                  </MenuItem>
-                </Select>
-                {errors.marketCap && (
-                  <FormHelperText>{errors.marketCap}</FormHelperText>
-                )}
-              </FormControl>
             </>
           )}
 
@@ -667,6 +595,37 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
               </Select>
               {errors.sector && (
                 <FormHelperText>{errors.sector}</FormHelperText>
+              )}
+            </FormControl>
+          )}
+
+          {/* Market Cap Selection (Stocks only) */}
+          {securityType === "stock" && (
+            <FormControl required error={!!errors.marketCap}>
+              <InputLabel>Market Cap</InputLabel>
+              <Select
+                value={marketCap}
+                onChange={(e) => setMarketCap(e.target.value)}
+                label="Market Cap"
+              >
+                {MARKET_CAPS.map((cap) => (
+                  <MenuItem
+                    key={cap}
+                    value={cap}
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    {cap.charAt(0).toUpperCase() + cap.slice(1)} Cap
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.marketCap && (
+                <FormHelperText>{errors.marketCap}</FormHelperText>
               )}
             </FormControl>
           )}
@@ -794,32 +753,34 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
             </Box>
           )}
 
-          {/* Style Selection */}
-          <FormControl required error={!!errors.style}>
-            <InputLabel>Style</InputLabel>
-            <Select
-              value={style}
-              onChange={(e) => setStyle(e.target.value as Style)}
-              label="Style"
-            >
-              {STYLES.map((s) => (
-                <MenuItem
-                  key={s}
-                  value={s}
-                  sx={{
-                    backgroundColor: "background.default",
-                    "&:hover": {
+          {/* Style Selection (Stocks only) */}
+          {securityType === "stock" && (
+            <FormControl required error={!!errors.style}>
+              <InputLabel>Style</InputLabel>
+              <Select
+                value={style}
+                onChange={(e) => setStyle(e.target.value as Style)}
+                label="Style"
+              >
+                {STYLES.map((s) => (
+                  <MenuItem
+                    key={s}
+                    value={s}
+                    sx={{
                       backgroundColor: "background.default",
-                      color: "text.primary",
-                    },
-                  }}
-                >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </MenuItem>
-              ))}
-            </Select>
-            {errors.style && <FormHelperText>{errors.style}</FormHelperText>}
-          </FormControl>
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.style && <FormHelperText>{errors.style}</FormHelperText>}
+            </FormControl>
+          )}
 
           {/* Annual Dividend */}
           <TextField

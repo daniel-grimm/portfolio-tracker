@@ -108,7 +108,7 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
               startIcon={<AddIcon />}
               onClick={() => setStockDialogOpen(true)}
             >
-              Add Stock
+              Add Ticker
             </Button>
             <Button
               variant="contained"
@@ -176,7 +176,7 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
             startIcon={<AddIcon />}
             onClick={() => setStockDialogOpen(true)}
           >
-            Add Stock
+            Add Ticker
           </Button>
           <Button
             variant="contained"

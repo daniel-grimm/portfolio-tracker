@@ -11,7 +11,8 @@ import { fetchStockQuote } from "../services/finnhubService";
 import { fetchMutualFundQuote } from "../services/alphaVantageService";
 
 export function Tickers() {
-  const { stocks, aggregatedPositions, deleteStock, updateStock } = usePortfolio();
+  const { stocks, aggregatedPositions, deleteStock, updateStock } =
+    usePortfolio();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -99,7 +100,7 @@ export function Tickers() {
           startIcon={<AddIcon />}
           onClick={() => setAddDialogOpen(true)}
         >
-          Add Stock
+          Add Ticker
         </Button>
       </Box>
 
@@ -127,9 +128,7 @@ export function Tickers() {
         onClose={handleCloseDeleteDialog}
         onConfirm={handleConfirmDelete}
         ticker={tickerToDelete || ""}
-        stockName={
-          stocks.find((s) => s.ticker === tickerToDelete)?.name || ""
-        }
+        stockName={stocks.find((s) => s.ticker === tickerToDelete)?.name || ""}
         positionCount={positionCount}
       />
     </Box>

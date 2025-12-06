@@ -21,7 +21,7 @@ export function Analytics() {
           No Portfolio Data
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Add stocks and positions to your portfolio to see analytics
+          Add positions to your portfolio to see analytics
         </Typography>
       </Box>
     );

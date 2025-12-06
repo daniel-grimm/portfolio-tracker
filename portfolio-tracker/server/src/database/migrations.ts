@@ -115,7 +115,6 @@ export function runMigrations(db: Database.Database): void {
   `);
 
   // Add ETF support columns to stocks table (idempotent migrations)
-  addColumnIfNotExists(db, 'stocks', 'is_etf', 'INTEGER NOT NULL DEFAULT 0');
   addColumnIfNotExists(db, 'stocks', 'sector_allocations', 'TEXT');
   addColumnIfNotExists(db, 'stocks', 'country_allocations', 'TEXT');
   addColumnIfNotExists(db, 'stocks', 'description', 'TEXT');
@@ -136,6 +135,16 @@ export function runMigrations(db: Database.Database): void {
     END
     WHERE security_type IS NULL;
   `);
+
+  // Drop deprecated is_etf column (replaced by security_type)
+  // SQLite supports DROP COLUMN in version 3.35.0+ (2021-03-12)
+  try {
+    db.exec(`ALTER TABLE stocks DROP COLUMN IF EXISTS is_etf;`);
+    console.log('Dropped deprecated is_etf column from stocks table');
+  } catch (error) {
+    // Silently ignore if DROP COLUMN is not supported (older SQLite versions)
+    // The column will remain but is no longer used
+  }
 
   // Create accounts table for brokerage account management
   db.exec(`

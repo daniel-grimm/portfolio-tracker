@@ -404,7 +404,6 @@ export function AddStockDialog({ open, onClose }: AddStockDialogProps) {
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
       securityType: securityType,
-      isEtf: securityType === "etf", // Maintain backward compatibility
       description: description || undefined,
       sectorAllocations,
       countryAllocations,

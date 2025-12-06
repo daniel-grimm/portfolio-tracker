@@ -58,7 +58,6 @@ export async function getStockData(
       isDomestic,
       lastUpdated: Date.now(),
       securityType: "stock", // This service is for stocks only
-      isEtf: false, // Deprecated: use securityType instead
     };
 
     return stockData;

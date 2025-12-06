@@ -77,7 +77,6 @@ interface PositionWithStockRow extends PositionRow {
   style: string;
   is_domestic: number;
   last_updated: number;
-  is_etf: number;
   security_type: string | null;
   description: string | null;
   sector_allocations: string | null;
@@ -109,15 +108,7 @@ function rowToPosition(row: PositionRow): Position {
  * @returns PositionWithStock object
  */
 function rowToPositionWithStock(row: PositionWithStockRow): PositionWithStock {
-  // Determine security type with backward compatibility fallback
-  // This mirrors the logic in stockService.ts rowToStock() function
-  let securityType: Stock['securityType'];
-  if (row.security_type) {
-    securityType = row.security_type as Stock['securityType'];
-  } else {
-    // Fallback for old data without security_type
-    securityType = row.is_etf === 1 ? "etf" : "stock";
-  }
+  const securityType = row.security_type as Stock['securityType'];
 
   return {
     id: row.id,
@@ -138,7 +129,6 @@ function rowToPositionWithStock(row: PositionWithStockRow): PositionWithStock {
       isDomestic: row.is_domestic === 1,
       lastUpdated: row.last_updated,
       securityType: securityType,
-      isEtf: securityType === "etf",
       description: row.description || undefined,
       sectorAllocations: row.sector_allocations
         ? JSON.parse(row.sector_allocations)
@@ -185,7 +175,7 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.security_type, s.description, s.sector_allocations, s.country_allocations,
         s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
@@ -208,7 +198,7 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.security_type, s.description, s.sector_allocations, s.country_allocations,
         s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
@@ -232,7 +222,7 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.security_type, s.description, s.sector_allocations, s.country_allocations,
         s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
@@ -425,7 +415,7 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.security_type, s.description, s.sector_allocations, s.country_allocations,
         s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker

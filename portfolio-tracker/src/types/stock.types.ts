@@ -131,9 +131,6 @@ export interface StockData {
   /** Security type classification */
   securityType: SecurityType;
 
-  /** @deprecated Use securityType instead. Whether this is an ETF (Exchange-Traded Fund) */
-  isEtf: boolean;
-
   /** Description (optional, for ETFs and mutual funds) */
   description?: string;
 

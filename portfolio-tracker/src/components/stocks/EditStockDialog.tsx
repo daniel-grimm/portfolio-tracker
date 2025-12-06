@@ -399,7 +399,6 @@ export function EditStockDialog({
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
       securityType: stock.securityType,
-      isEtf: stock.securityType === "etf", // Maintain backward compatibility
       description: description || undefined,
       sectorAllocations,
       countryAllocations,

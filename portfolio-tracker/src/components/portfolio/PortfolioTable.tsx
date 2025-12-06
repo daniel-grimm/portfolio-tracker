@@ -20,6 +20,7 @@ import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { EditPositionsDialog } from "./EditPositionsDialog";
 import { ManageAccountsDialog } from "./ManageAccountsDialog";
 import { usePortfolio } from "../../context/PortfolioContext";
+import { enrichPosition } from "../../utils/calculations";
 
 interface PortfolioTableProps {
   positions: PositionMetadata[];
@@ -44,7 +45,10 @@ export function PortfolioTable({ positions }: PortfolioTableProps) {
         (p) => p.ticker === positionToEdit.ticker
       );
       if (updatedPosition) {
-        setPositionToEdit(updatedPosition);
+        const enrichedPosition = enrichPosition(updatedPosition);
+        if (enrichedPosition) {
+          setPositionToEdit(enrichedPosition);
+        }
       }
     }
   }, [aggregatedPositions, positionToEdit, editDialogOpen]);

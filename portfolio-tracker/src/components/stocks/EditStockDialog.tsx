@@ -28,9 +28,11 @@ import type {
   MarketCap,
   SectorAllocationMap,
   CountryAllocationMap,
+  StyleMarketCapAllocationMap,
 } from "../../types/stock.types";
 import { isEtfOrMutualFund } from "../../types/stock.types";
 import { SECTORS, STYLES, MARKET_CAPS } from "../../data/constants";
+import { StyleMarketCapGrid } from "./StyleMarketCapGrid";
 
 interface EditStockDialogProps {
   open: boolean;
@@ -64,6 +66,9 @@ export function EditStockDialog({
   // ETF-specific fields
   const [sectorRows, setSectorRows] = useState<AllocationRow[]>([]);
   const [countryRows, setCountryRows] = useState<AllocationRow[]>([]);
+  const [styleMarketCapAllocations, setStyleMarketCapAllocations] = useState<{
+    [key: string]: string;
+  }>({});
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -108,6 +113,24 @@ export function EditStockDialog({
         } else {
           setCountryRows([]);
         }
+
+        // Initialize style-market cap allocations
+        if (stock.styleMarketCapAllocations) {
+          // Load existing allocations
+          const allocMap: { [key: string]: string } = {};
+          Object.entries(stock.styleMarketCapAllocations).forEach(
+            ([key, value]) => {
+              allocMap[key] = value.toString();
+            }
+          );
+          setStyleMarketCapAllocations(allocMap);
+        } else {
+          // Auto-convert from old single values to 100% allocation
+          const key = `${stock.marketCap}${
+            stock.style.charAt(0).toUpperCase() + stock.style.slice(1)
+          }`;
+          setStyleMarketCapAllocations({ [key]: "100" });
+        }
       }
     }
   }, [stock, open]);
@@ -128,6 +151,7 @@ export function EditStockDialog({
     setDescription("");
     setSectorRows([]);
     setCountryRows([]);
+    setStyleMarketCapAllocations({});
     setError("");
     setErrors({});
   };
@@ -218,8 +242,22 @@ export function EditStockDialog({
 
     if (isEtfOrMutualFund(stock)) {
       // ETF-specific validation
-      if (!marketCap) {
-        newErrors.marketCap = "Please select market cap";
+
+      // Style-Market Cap allocations validation
+      const styleMarketCapTotal = Object.values(
+        styleMarketCapAllocations
+      ).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
+      if (
+        Object.keys(styleMarketCapAllocations).length === 0 ||
+        styleMarketCapTotal === 0
+      ) {
+        newErrors.styleMarketCapAllocation =
+          "Style-Market Cap allocations are required for ETFs and mutual funds";
+      } else if (Math.abs(styleMarketCapTotal - 100) > 5) {
+        newErrors.styleMarketCapAllocation = `Style-Market Cap allocations total ${styleMarketCapTotal.toFixed(
+          1
+        )}% (should be ~100%)`;
       }
 
       // Validation warnings for allocation percentages
@@ -241,10 +279,10 @@ export function EditStockDialog({
       if (!sector) {
         newErrors.sector = "Please select a sector";
       }
-    }
 
-    if (!style) {
-      newErrors.style = "Please select a style";
+      if (!style) {
+        newErrors.style = "Please select a style";
+      }
     }
 
     setErrors(newErrors);
@@ -277,6 +315,24 @@ export function EditStockDialog({
           }, {} as CountryAllocationMap)
         : undefined;
 
+    // Build style-market cap allocations for ETFs and mutual funds
+    const styleMarketCapAllocationMap:
+      | StyleMarketCapAllocationMap
+      | undefined =
+      isEtfOrMutualFund(stock) &&
+      Object.keys(styleMarketCapAllocations).length > 0
+        ? Object.entries(styleMarketCapAllocations).reduce(
+            (acc, [key, value]) => {
+              if (value) {
+                acc[key as keyof StyleMarketCapAllocationMap] =
+                  parseFloat(value);
+              }
+              return acc;
+            },
+            {} as StyleMarketCapAllocationMap
+          )
+        : undefined;
+
     // Determine dominant sector and country for ETFs
     const dominantSector =
       isEtfOrMutualFund(stock) && sectorRows.length > 0
@@ -288,6 +344,45 @@ export function EditStockDialog({
         ? countryRows[0].name
         : stock.country;
 
+    // Determine dominant market cap and style for ETFs (from allocations)
+    const dominantMarketCap = isEtfOrMutualFund(stock)
+      ? Object.entries(styleMarketCapAllocations).reduce(
+          (max, [key, value]) => {
+            const val = parseFloat(value) || 0;
+            const maxVal = parseFloat(max[1]) || 0;
+            return val > maxVal ? [key, value] : max;
+          },
+          ["", "0"]
+        )[0]
+      : "";
+
+    const dominantStyle = isEtfOrMutualFund(stock)
+      ? Object.entries(styleMarketCapAllocations).reduce(
+          (max, [key, value]) => {
+            const val = parseFloat(value) || 0;
+            const maxVal = parseFloat(max[1]) || 0;
+            return val > maxVal ? [key, value] : max;
+          },
+          ["", "0"]
+        )[0]
+      : "";
+
+    // Extract market cap and style from the dominant allocation key
+    // Key format: "largeValue", "midBlend", etc.
+    const extractMarketCap = (key: string): MarketCap => {
+      if (key.startsWith("large")) return "large";
+      if (key.startsWith("mid")) return "mid";
+      if (key.startsWith("small")) return "small";
+      return "large"; // fallback
+    };
+
+    const extractStyle = (key: string): Style => {
+      if (key.endsWith("Value")) return "value";
+      if (key.endsWith("Blend")) return "blend";
+      if (key.endsWith("Growth")) return "growth";
+      return "blend"; // fallback
+    };
+
     const updatedStock: Stock = {
       ticker: stock.ticker,
       name: companyName,
@@ -295,8 +390,12 @@ export function EditStockDialog({
       annualDividend: parseFloat(annualDividend) || 0,
       sector: dominantSector,
       country: dominantCountry,
-      marketCap: marketCap as MarketCap,
-      style: style as Style,
+      marketCap: isEtfOrMutualFund(stock)
+        ? extractMarketCap(dominantMarketCap)
+        : (marketCap as MarketCap),
+      style: isEtfOrMutualFund(stock)
+        ? extractStyle(dominantStyle)
+        : (style as Style),
       isDomestic: dominantCountry === "US",
       lastUpdated: Date.now(),
       securityType: stock.securityType,
@@ -304,6 +403,7 @@ export function EditStockDialog({
       description: description || undefined,
       sectorAllocations,
       countryAllocations,
+      styleMarketCapAllocations: styleMarketCapAllocationMap,
     };
 
     try {
@@ -475,28 +575,12 @@ export function EditStockDialog({
                 helperText="Optional description of the ETF"
               />
 
-              {/* Market Cap */}
-              <FormControl required error={!!errors.marketCap} fullWidth>
-                <InputLabel>Market Cap</InputLabel>
-                <Select
-                  value={marketCap}
-                  onChange={(e) => setMarketCap(e.target.value as MarketCap)}
-                  label="Market Cap"
-                >
-                  {MARKET_CAPS.map((cap) => (
-                    <MenuItem
-                      key={cap}
-                      value={cap}
-                      sx={{ backgroundColor: "background.default" }}
-                    >
-                      {cap.charAt(0).toUpperCase() + cap.slice(1)}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.marketCap && (
-                  <FormHelperText>{errors.marketCap}</FormHelperText>
-                )}
-              </FormControl>
+              {/* Style-Market Cap Allocations Grid */}
+              <StyleMarketCapGrid
+                allocations={styleMarketCapAllocations}
+                onChange={setStyleMarketCapAllocations}
+                error={errors.styleMarketCapAllocation}
+              />
 
               {/* Sector Allocations */}
               <Box>
@@ -638,26 +722,28 @@ export function EditStockDialog({
             </>
           )}
 
-          {/* Style (common for both) */}
-          <FormControl required error={!!errors.style} fullWidth>
-            <InputLabel>Style</InputLabel>
-            <Select
-              value={style}
-              onChange={(e) => setStyle(e.target.value as Style)}
-              label="Style"
-            >
-              {STYLES.map((s) => (
-                <MenuItem
-                  key={s}
-                  value={s}
-                  sx={{ backgroundColor: "background.default" }}
-                >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </MenuItem>
-              ))}
-            </Select>
-            {errors.style && <FormHelperText>{errors.style}</FormHelperText>}
-          </FormControl>
+          {/* Style (for stocks only - ETFs use the grid above) */}
+          {!isEtfOrMutualFund(stock) && (
+            <FormControl required error={!!errors.style} fullWidth>
+              <InputLabel>Style</InputLabel>
+              <Select
+                value={style}
+                onChange={(e) => setStyle(e.target.value as Style)}
+                label="Style"
+              >
+                {STYLES.map((s) => (
+                  <MenuItem
+                    key={s}
+                    value={s}
+                    sx={{ backgroundColor: "background.default" }}
+                  >
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.style && <FormHelperText>{errors.style}</FormHelperText>}
+            </FormControl>
+          )}
 
           {/* Error Display */}
           {error && (

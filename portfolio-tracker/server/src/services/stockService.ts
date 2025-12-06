@@ -45,6 +45,23 @@ export interface CountryAllocationMap {
 }
 
 /**
+ * Style-Market Cap allocation map for ETFs and mutual funds.
+ * Maps style-market cap combination to percentage allocation (0-100).
+ * Keys follow the pattern: {marketCap}{Style} (e.g., "largeValue", "midBlend").
+ */
+export interface StyleMarketCapAllocationMap {
+  largeValue: number;
+  largeBlend: number;
+  largeGrowth: number;
+  midValue: number;
+  midBlend: number;
+  midGrowth: number;
+  smallValue: number;
+  smallBlend: number;
+  smallGrowth: number;
+}
+
+/**
  * Stock data (single record per ticker).
  * This is the API/application format using camelCase naming.
  *
@@ -67,6 +84,7 @@ export interface Stock {
   description?: string;
   sectorAllocations?: SectorAllocationMap;
   countryAllocations?: CountryAllocationMap;
+  styleMarketCapAllocations?: StyleMarketCapAllocationMap;
 }
 
 /**
@@ -93,6 +111,7 @@ interface StockRow {
   description: string | null;
   sector_allocations: string | null; // JSON string
   country_allocations: string | null; // JSON string
+  style_market_cap_allocations: string | null; // JSON string
 }
 
 /**
@@ -137,6 +156,9 @@ function rowToStock(row: StockRow): Stock {
     countryAllocations: row.country_allocations
       ? JSON.parse(row.country_allocations)
       : undefined,
+    styleMarketCapAllocations: row.style_market_cap_allocations
+      ? JSON.parse(row.style_market_cap_allocations)
+      : undefined,
   };
 }
 
@@ -172,6 +194,9 @@ function stockToRow(stock: Stock) {
       : null,
     country_allocations: stock.countryAllocations
       ? JSON.stringify(stock.countryAllocations)
+      : null,
+    style_market_cap_allocations: stock.styleMarketCapAllocations
+      ? JSON.stringify(stock.styleMarketCapAllocations)
       : null,
   };
 }
@@ -219,9 +244,10 @@ export const stockService = {
       INSERT INTO stocks (
         ticker, name, current_price, annual_dividend,
         sector, country, market_cap, style, is_domestic, last_updated,
-        security_type, is_etf, description, sector_allocations, country_allocations
+        security_type, is_etf, description, sector_allocations, country_allocations,
+        style_market_cap_allocations
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(ticker) DO UPDATE SET
         name = excluded.name,
         current_price = excluded.current_price,
@@ -236,7 +262,8 @@ export const stockService = {
         is_etf = excluded.is_etf,
         description = excluded.description,
         sector_allocations = excluded.sector_allocations,
-        country_allocations = excluded.country_allocations
+        country_allocations = excluded.country_allocations,
+        style_market_cap_allocations = excluded.style_market_cap_allocations
     `);
 
     stmt.run(
@@ -254,7 +281,8 @@ export const stockService = {
       rowData.is_etf,
       rowData.description,
       rowData.sector_allocations,
-      rowData.country_allocations
+      rowData.country_allocations,
+      rowData.style_market_cap_allocations
     );
 
     return stock;
@@ -297,7 +325,8 @@ export const stockService = {
           is_etf = ?,
           description = ?,
           sector_allocations = ?,
-          country_allocations = ?
+          country_allocations = ?,
+          style_market_cap_allocations = ?
       WHERE ticker = ?
     `);
 
@@ -316,6 +345,7 @@ export const stockService = {
       rowData.description,
       rowData.sector_allocations,
       rowData.country_allocations,
+      rowData.style_market_cap_allocations,
       ticker.toUpperCase()
     );
 

@@ -123,6 +123,9 @@ export function runMigrations(db: Database.Database): void {
   // Add security_type column for stocks/ETFs/mutual funds
   addColumnIfNotExists(db, 'stocks', 'security_type', 'TEXT');
 
+  // Add style-market cap allocation percentages for ETFs and mutual funds
+  addColumnIfNotExists(db, 'stocks', 'style_market_cap_allocations', 'TEXT');
+
   // Migrate existing data to use security_type
   // This is safe to run multiple times - only updates rows where security_type is NULL
   db.exec(`

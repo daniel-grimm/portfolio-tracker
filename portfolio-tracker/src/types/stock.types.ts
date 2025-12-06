@@ -71,6 +71,23 @@ export interface CountryAllocationMap {
 }
 
 /**
+ * Style-Market Cap allocation map for ETFs and mutual funds.
+ * Maps style-market cap combination to percentage allocation (0-100).
+ * Keys follow the pattern: {marketCap}{Style} (e.g., "largeValue", "midBlend").
+ */
+export interface StyleMarketCapAllocationMap {
+  largeValue: number;
+  largeBlend: number;
+  largeGrowth: number;
+  midValue: number;
+  midBlend: number;
+  midGrowth: number;
+  smallValue: number;
+  smallBlend: number;
+  smallGrowth: number;
+}
+
+/**
  * Complete snapshot of stock market data.
  *
  * This data is fetched from API providers and stored with each holding as a JSON snapshot
@@ -125,6 +142,9 @@ export interface StockData {
 
   /** Country allocation percentages for ETFs and mutual funds (optional, for proportional analytics) */
   countryAllocations?: CountryAllocationMap;
+
+  /** Style-Market Cap allocation percentages for ETFs and mutual funds (optional, for proportional analytics) */
+  styleMarketCapAllocations?: StyleMarketCapAllocationMap;
 }
 
 /**

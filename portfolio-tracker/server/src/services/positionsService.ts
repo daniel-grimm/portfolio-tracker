@@ -82,6 +82,7 @@ interface PositionWithStockRow extends PositionRow {
   description: string | null;
   sector_allocations: string | null;
   country_allocations: string | null;
+  style_market_cap_allocations: string | null;
 }
 
 /**
@@ -145,6 +146,9 @@ function rowToPositionWithStock(row: PositionWithStockRow): PositionWithStock {
       countryAllocations: row.country_allocations
         ? JSON.parse(row.country_allocations)
         : undefined,
+      styleMarketCapAllocations: row.style_market_cap_allocations
+        ? JSON.parse(row.style_market_cap_allocations)
+        : undefined,
     },
   };
 }
@@ -181,7 +185,8 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations
+        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       ORDER BY p.created_at DESC
@@ -203,7 +208,8 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations
+        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       WHERE p.ticker = ?
@@ -226,7 +232,8 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations
+        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       WHERE p.id = ?
@@ -418,7 +425,8 @@ export const positionsService = {
         p.id, p.ticker, p.quantity, p.cost_basis, p.purchase_date, p.account_id, p.created_at,
         s.name, s.current_price, s.annual_dividend, s.sector,
         s.country, s.market_cap, s.style, s.is_domestic, s.last_updated,
-        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations
+        s.is_etf, s.security_type, s.description, s.sector_allocations, s.country_allocations,
+        s.style_market_cap_allocations
       FROM positions p
       JOIN stocks s ON p.ticker = s.ticker
       WHERE p.account_id = ?

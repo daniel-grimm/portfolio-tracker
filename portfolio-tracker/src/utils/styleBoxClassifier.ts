@@ -3,6 +3,7 @@ import type {
   StyleBoxAllocation,
 } from "../types/portfolio.types";
 import type { MarketCap, Style } from "../types/stock.types";
+import { isEtfOrMutualFund } from "../types/stock.types";
 
 export function calculateStyleBoxAllocation(
   enrichedPositions: PositionMetadata[]
@@ -29,9 +30,22 @@ export function calculateStyleBoxAllocation(
   }
 
   enrichedPositions.forEach((position) => {
-    const { marketCap, style } = position.stock;
-    const key = getStyleBoxKey(marketCap, style);
-    allocation[key] += position.currentValue;
+    const stock = position.stock;
+
+    console.log(stock.styleMarketCapAllocations);
+
+    if (isEtfOrMutualFund(stock) && stock.styleMarketCapAllocations) {
+      // ETF/Mutual Fund: distribute value proportionally across style-market cap categories
+      Object.entries(stock.styleMarketCapAllocations).forEach(([key, pct]) => {
+        allocation[key as keyof StyleBoxAllocation] +=
+          position.currentValue * (pct / 100);
+      });
+    } else {
+      // Stock (or ETF without allocations): add full value to single category
+      const { marketCap, style } = stock;
+      const key = getStyleBoxKey(marketCap, style);
+      allocation[key] += position.currentValue;
+    }
   });
 
   // Convert to percentages

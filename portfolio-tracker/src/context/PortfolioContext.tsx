@@ -6,9 +6,11 @@ import type {
   AggregatedPosition,
 } from "../types/portfolio.types";
 import type { Account } from "../types/account.types";
+import type { Dividend } from "../types/dividend.types";
 import { stocksApi } from "../services/stocksApi";
 import { positionsApi } from "../services/positionsApi";
 import { accountsApi } from "../services/accountsApi";
+import { dividendsApi } from "../services/dividendsApi";
 
 interface PortfolioContextType {
   // Aggregated positions for display (one row per ticker)
@@ -17,6 +19,8 @@ interface PortfolioContextType {
   stocks: Stock[];
   // All available accounts
   accounts: Account[];
+  // All dividends
+  dividends: Dividend[];
   isLoading: boolean;
   error: string | null;
 
@@ -39,6 +43,12 @@ interface PortfolioContextType {
   deleteAccount: (id: string) => Promise<void>;
   refreshAccounts: () => Promise<void>;
 
+  // Dividend management
+  addDividend: (dividend: Omit<Dividend, "id">) => Promise<void>;
+  updateDividend: (id: string, dividend: Partial<Omit<Dividend, "id">>) => Promise<void>;
+  deleteDividend: (id: string) => Promise<void>;
+  refreshDividends: () => Promise<void>;
+
   // Refresh everything
   refresh: () => Promise<void>;
 }
@@ -59,6 +69,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
   >([]);
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [dividends, setDividends] = useState<Dividend[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +111,18 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
     }
   };
 
+  // Refresh all dividends
+  const refreshDividends = async () => {
+    try {
+      setError(null);
+      const allDividends = await dividendsApi.getAll();
+      setDividends(allDividends);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch dividends");
+      console.error("Error fetching dividends:", err);
+    }
+  };
+
   // Refresh everything
   const refresh = async () => {
     try {
@@ -109,6 +132,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
         refreshStocks(),
         refreshPositions(),
         refreshAccounts(),
+        refreshDividends(),
       ]);
     } catch (err) {
       setError(
@@ -261,10 +285,48 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
     }
   };
 
+  // Dividend management
+  const addDividend = async (dividend: Omit<Dividend, "id">) => {
+    try {
+      setError(null);
+      const newDividend = await dividendsApi.create(dividend);
+      setDividends((prev) => [newDividend, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add dividend");
+      console.error("Error adding dividend:", err);
+      throw err;
+    }
+  };
+
+  const updateDividend = async (id: string, dividend: Partial<Omit<Dividend, "id">>) => {
+    try {
+      setError(null);
+      const updated = await dividendsApi.update(id, dividend);
+      setDividends((prev) => prev.map((d) => (d.id === id ? updated : d)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update dividend");
+      console.error("Error updating dividend:", err);
+      throw err;
+    }
+  };
+
+  const deleteDividend = async (id: string) => {
+    try {
+      setError(null);
+      await dividendsApi.delete(id);
+      setDividends((prev) => prev.filter((d) => d.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete dividend");
+      console.error("Error deleting dividend:", err);
+      throw err;
+    }
+  };
+
   const value: PortfolioContextType = {
     aggregatedPositions,
     stocks,
     accounts,
+    dividends,
     isLoading,
     error,
     addStock,
@@ -280,6 +342,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
     updateAccount,
     deleteAccount,
     refreshAccounts,
+    addDividend,
+    updateDividend,
+    deleteDividend,
+    refreshDividends,
     refresh,
   };
 

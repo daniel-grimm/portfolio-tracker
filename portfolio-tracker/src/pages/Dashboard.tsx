@@ -37,19 +37,6 @@ export function Dashboard() {
           subtitle={formatPercent(portfolioMetrics.totalGainLossPercent)}
           color={getGainLossColor(portfolioMetrics.totalGainLoss)}
         />
-        <MetricCard
-          title="Annual Dividend Income"
-          value={formatCurrency(portfolioMetrics.totalAnnualIncome)}
-          subtitle={`Dividend Per Month: ${formatCurrency(portfolioMetrics.totalAnnualIncome / 12)}`}
-        />
-        <MetricCard
-          title="Average Dividend Yield"
-          value={formatPercent(portfolioMetrics.averageDividendYield)}
-        />
-        <MetricCard
-          title="Average Yield on Cost"
-          value={formatPercent(portfolioMetrics.averageYieldOnCost)}
-        />
       </Box>
       <PortfolioTable positions={enrichedPositions} />
     </Box>

@@ -167,5 +167,41 @@ export function runMigrations(db: Database.Database): void {
   // NULL allowed for backward compatibility with existing positions
   addColumnIfNotExists(db, 'positions', 'account_id', 'TEXT');
 
+  // Create dividends table for tracking dividend payments
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS dividends (
+      -- UUID primary key for unique dividend identification
+      id TEXT PRIMARY KEY,
+
+      -- Date dividend was received (ISO 8601 format: YYYY-MM-DD)
+      date TEXT NOT NULL,
+
+      -- Dollar amount of dividend
+      amount REAL NOT NULL CHECK(amount > 0),
+
+      -- Foreign key to stocks table
+      ticker TEXT NOT NULL,
+
+      -- Boolean flag for dividend reinvestment (1 = true, 0 = false)
+      is_reinvested INTEGER NOT NULL DEFAULT 0,
+
+      -- Unix timestamp in seconds when dividend record was created
+      created_at INTEGER DEFAULT (unixepoch()),
+
+      -- Foreign key constraint
+      -- ON DELETE CASCADE: if stock is deleted, all its dividends are deleted
+      FOREIGN KEY (ticker) REFERENCES stocks(ticker) ON DELETE CASCADE
+    );
+  `);
+
+  // Create indexes for efficient dividend queries
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_dividends_date ON dividends(date);
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_dividends_ticker ON dividends(ticker);
+  `);
+
   console.log('Database migrations completed successfully');
 }

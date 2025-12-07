@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { stocksRouter } from './routes/stocks.js';
 import { positionsRouter } from './routes/positions.js';
 import { accountsRouter } from './routes/accounts.js';
+import { dividendsRouter } from './routes/dividends.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use('/api/stocks', stocksRouter);
 app.use('/api/positions', positionsRouter);
 app.use('/api/accounts', accountsRouter);
+app.use('/api/dividends', dividendsRouter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

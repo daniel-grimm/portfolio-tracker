@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { Delete as DeleteIcon } from "@mui/icons-material";
 import type { Dividend } from "../../types/dividend.types";
-import { formatCurrency } from "../../utils/formatters";
+import { formatCurrency, formatDate } from "../../utils/formatters";
 import { usePortfolio } from "../../context/PortfolioContext";
 
 interface DividendHistoryTableProps {
@@ -77,7 +77,7 @@ export function DividendHistoryTable({
             {sortedDividends.map((dividend) => (
               <TableRow key={dividend.id} sx={{backgroundColor: "background.default"}}>
                 <TableCell>
-                  {new Date(dividend.date).toLocaleDateString()}
+                  {formatDate(dividend.date)}
                 </TableCell>
                 <TableCell>{dividend.ticker}</TableCell>
                 <TableCell align="right">

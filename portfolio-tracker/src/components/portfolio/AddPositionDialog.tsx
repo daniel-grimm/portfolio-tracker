@@ -73,7 +73,7 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
 
     const costBasisNum = parseFloat(costBasis);
     if (!costBasis || isNaN(costBasisNum) || costBasisNum < 0) {
-      newErrors.costBasis = "Cost basis must be greater than 0";
+      newErrors.costBasis = "Cost basis cannot be negative";
     }
 
     setErrors(newErrors);

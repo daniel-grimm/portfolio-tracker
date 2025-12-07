@@ -40,7 +40,7 @@ export function Dashboard() {
         <MetricCard
           title="Annual Dividend Income"
           value={formatCurrency(portfolioMetrics.totalAnnualIncome)}
-          subtitle={`Avg Yield: ${formatPercent(portfolioMetrics.averageDividendYield)}`}
+          subtitle={`Dividend Per Month: ${formatCurrency(portfolioMetrics.totalAnnualIncome / 12)}`}
         />
         <MetricCard
           title="Average Dividend Yield"

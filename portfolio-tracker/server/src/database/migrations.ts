@@ -100,7 +100,7 @@ export function runMigrations(db: Database.Database): void {
       quantity REAL NOT NULL CHECK(quantity > 0),
 
       -- Purchase price per share for this position in USD
-      cost_basis REAL NOT NULL CHECK(cost_basis > 0),
+      cost_basis REAL NOT NULL CHECK(cost_basis >= 0),
 
       -- Purchase date in ISO 8601 format (YYYY-MM-DD), optional
       purchase_date TEXT,

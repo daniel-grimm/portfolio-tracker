@@ -31,16 +31,80 @@ const TICKER_COLORS = [
   '#5e35b1',
 ];
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    dataKey: string;
+    name: string;
+    value: number;
+    color: string;
+    payload: {
+      period: string;
+      total: number;
+      [key: string]: any;
+    };
+  }>;
+  label?: string;
+}
+
+const CustomDividendTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const total = payload[0]?.payload?.total || 0;
+
+  return (
+    <Box
+      sx={{
+        backgroundColor: '#1a1a1a',
+        border: '1px solid #444',
+        borderRadius: '4px',
+        padding: '8px',
+      }}
+    >
+      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1, color: '#fff' }}>
+        {label}
+      </Typography>
+      {payload.map((entry, index) => (
+        <Typography
+          key={index}
+          variant="body2"
+          sx={{ color: entry.color, my: 0.5 }}
+        >
+          {entry.name}: {formatCurrency(entry.value)}
+        </Typography>
+      ))}
+      <Box
+        sx={{
+          borderTop: '1px solid #444',
+          mt: 1,
+          pt: 1,
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 'bold', color: '#fff' }}
+        >
+          Total: {formatCurrency(total)}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
 export function DividendCharts({ quarterlyData, yearlyData }: DividendChartsProps) {
   // Transform quarterly data for Recharts stacked bar format
   const quarterlyChartData = quarterlyData.map((q) => ({
     period: q.quarter,
+    total: q.total,
     ...q.dividends,
   }));
 
   // Transform yearly data for Recharts stacked bar format
   const yearlyChartData = yearlyData.map((y) => ({
     period: y.year.toString(),
+    total: y.total,
     ...y.dividends,
   }));
 
@@ -89,10 +153,7 @@ export function DividendCharts({ quarterlyData, yearlyData }: DividendChartsProp
                 position: 'insideLeft',
               }}
             />
-            <Tooltip
-              formatter={(value) => formatCurrency(Number(value))}
-              contentStyle={{ backgroundColor: '#1a1a1a' }}
-            />
+            <Tooltip content={<CustomDividendTooltip />} />
             <Legend />
             {tickers.map((ticker, index) => (
               <Bar
@@ -122,10 +183,7 @@ export function DividendCharts({ quarterlyData, yearlyData }: DividendChartsProp
                 position: 'insideLeft',
               }}
             />
-            <Tooltip
-              formatter={(value) => formatCurrency(Number(value))}
-              contentStyle={{ backgroundColor: '#1a1a1a' }}
-            />
+            <Tooltip content={<CustomDividendTooltip />} />
             <Legend />
             {tickers.map((ticker, index) => (
               <Bar

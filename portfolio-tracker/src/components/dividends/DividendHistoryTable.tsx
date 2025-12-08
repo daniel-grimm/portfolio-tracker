@@ -8,8 +8,10 @@ import {
   TableRow,
   Typography,
   IconButton,
+  Box,
+  Button,
 } from "@mui/material";
-import { Delete as DeleteIcon } from "@mui/icons-material";
+import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from "@mui/icons-material";
 import type { Dividend } from "../../types/dividend.types";
 import { formatCurrency, formatDate } from "../../utils/formatters";
 import { usePortfolio } from "../../context/PortfolioContext";
@@ -17,13 +19,23 @@ import { usePortfolio } from "../../context/PortfolioContext";
 interface DividendHistoryTableProps {
   dividends: Dividend[];
   onDelete: () => void;
+  onEdit: (dividend: Dividend) => void;
+  onAdd: () => void;
 }
 
 export function DividendHistoryTable({
   dividends,
   onDelete,
+  onEdit,
+  onAdd,
 }: DividendHistoryTableProps) {
-  const { deleteDividend } = usePortfolio();
+  const { deleteDividend, accounts } = usePortfolio();
+
+  const getAccountDisplay = (accountId?: string): string => {
+    if (!accountId) return "";
+    const account = accounts.find((a) => a.id === accountId);
+    return account ? `${account.name} (${account.platform})` : "";
+  };
 
   // Sort by date descending (most recent first)
   const sortedDividends = [...dividends].sort(
@@ -59,15 +71,27 @@ export function DividendHistoryTable({
 
   return (
     <Paper sx={{ mt: 4 }} elevation={2}>
-      <Typography variant="h6" sx={{ p: 2, backgroundColor: "primary.dark" }}>
-        Dividend History
-      </Typography>
+      <Box
+        sx={{
+          p: 2,
+          backgroundColor: "primary.dark",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography variant="h6">Dividend History</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
+          Add Dividend
+        </Button>
+      </Box>
       <TableContainer>
         <Table>
           <TableHead>
             <TableRow sx={{backgroundColor: "background.default"}}>
               <TableCell>Date</TableCell>
               <TableCell>Ticker</TableCell>
+              <TableCell>Account</TableCell>
               <TableCell align="right">Amount</TableCell>
               <TableCell align="center">Reinvested</TableCell>
               <TableCell align="center">Actions</TableCell>
@@ -80,6 +104,9 @@ export function DividendHistoryTable({
                   {formatDate(dividend.date)}
                 </TableCell>
                 <TableCell>{dividend.ticker}</TableCell>
+                <TableCell>
+                  {getAccountDisplay(dividend.accountId)}
+                </TableCell>
                 <TableCell align="right">
                   {formatCurrency(dividend.amount)}
                 </TableCell>
@@ -87,6 +114,13 @@ export function DividendHistoryTable({
                   {dividend.isReinvested ? "Yes" : "No"}
                 </TableCell>
                 <TableCell align="center">
+                  <IconButton
+                    size="small"
+                    onClick={() => onEdit(dividend)}
+                    color="primary"
+                  >
+                    <EditIcon />
+                  </IconButton>
                   <IconButton
                     size="small"
                     onClick={() => handleDelete(dividend.id)}

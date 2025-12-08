@@ -8,14 +8,28 @@ import { MetricCard } from '../components/common/MetricCard';
 import { DividendCharts } from '../components/dividends/DividendCharts';
 import { DividendGrowthMetrics } from '../components/dividends/DividendGrowthMetrics';
 import { AddDividendDialog } from '../components/dividends/AddDividendDialog';
+import { EditDividendDialog } from '../components/dividends/EditDividendDialog';
 import { DividendHistoryTable } from '../components/dividends/DividendHistoryTable';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import type { Dividend } from '../types/dividend.types';
 
 export function Dividends() {
   const { portfolioMetrics } = useCalculations();
   const { quarterlyData, yearlyData, metrics, isLoading, refresh } = useDividends();
   const { dividends } = usePortfolio();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [dividendToEdit, setDividendToEdit] = useState<Dividend | null>(null);
+
+  const handleEdit = (dividend: Dividend) => {
+    setDividendToEdit(dividend);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setDividendToEdit(null);
+  };
 
   if (isLoading) {
     return (
@@ -55,10 +69,10 @@ export function Dividends() {
       <DividendCharts quarterlyData={quarterlyData} yearlyData={yearlyData} />
 
       {/* Growth Metrics Cards */}
-      {metrics && <DividendGrowthMetrics metrics={metrics} />}
+      {metrics && <DividendGrowthMetrics metrics={metrics} yearlyData={yearlyData} />}
 
       {/* Add Dividend Button */}
-      <Box sx={{ mt: 4, mb: 2 }}>
+      <Box sx={{ mt: 4, mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
           Add Dividend
         </Button>
@@ -71,8 +85,19 @@ export function Dividends() {
         onSuccess={refresh}
       />
 
+      {/* Edit Dividend Dialog */}
+      <EditDividendDialog
+        open={editDialogOpen}
+        onClose={handleCloseEditDialog}
+        dividend={dividendToEdit}
+      />
+
       {/* Bottom Section - Dividend History Table */}
-      <DividendHistoryTable dividends={dividends} onDelete={refresh} />
+      <DividendHistoryTable
+        dividends={dividends}
+        onDelete={refresh}
+        onEdit={handleEdit}
+      />
     </Box>
   );
 }

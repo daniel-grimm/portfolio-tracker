@@ -203,5 +203,14 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_dividends_ticker ON dividends(ticker);
   `);
 
+  // Add account_id column to dividends table (idempotent migration)
+  // NULL allowed for backward compatibility with existing dividends
+  addColumnIfNotExists(db, 'dividends', 'account_id', 'TEXT');
+
+  // Create index for efficient account-based queries
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_dividends_account_id ON dividends(account_id);
+  `);
+
   console.log('Database migrations completed successfully');
 }

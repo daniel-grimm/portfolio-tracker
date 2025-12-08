@@ -11,6 +11,7 @@ export interface Dividend {
   amount: number;
   ticker: string;
   isReinvested: boolean;
+  accountId?: string;
   createdAt?: number;
 }
 

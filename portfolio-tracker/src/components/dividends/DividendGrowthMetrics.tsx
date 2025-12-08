@@ -1,17 +1,37 @@
 import { Box } from '@mui/material';
 import { MetricCard } from '../common/MetricCard';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
-import type { DividendMetrics } from '../../types/dividend.types';
+import type { DividendMetrics, YearlyDividend } from '../../types/dividend.types';
 
 interface DividendGrowthMetricsProps {
   metrics: DividendMetrics;
+  yearlyData: YearlyDividend[];
 }
 
-export function DividendGrowthMetrics({ metrics }: DividendGrowthMetricsProps) {
+export function DividendGrowthMetrics({ metrics, yearlyData }: DividendGrowthMetricsProps) {
   const getGrowthColor = (percent: number) => {
     if (percent > 0) return 'success';
     if (percent < 0) return 'error';
     return 'default';
+  };
+
+  // Calculate CAGR time period from yearlyData
+  const getCAGRTimeperiod = (): string => {
+    if (yearlyData.length < 2) {
+      return '';
+    }
+
+    // Filter out years with zero dividends (matching backend logic)
+    const nonZeroYears = yearlyData.filter((y) => y.total > 0);
+
+    if (nonZeroYears.length < 2) {
+      return '';
+    }
+
+    const firstYear = nonZeroYears[0].year;
+    const lastYear = nonZeroYears[nonZeroYears.length - 1].year;
+
+    return ` (${firstYear}-${lastYear})`;
   };
 
   return (
@@ -36,7 +56,7 @@ export function DividendGrowthMetrics({ metrics }: DividendGrowthMetricsProps) {
         color={getGrowthColor(metrics.yearlyGrowth.growthPercent)}
       />
       <MetricCard
-        title="Dividend CAGR"
+        title={`Dividend CAGR${getCAGRTimeperiod()}`}
         value={formatPercent(metrics.cagr)}
         color={getGrowthColor(metrics.cagr)}
       />

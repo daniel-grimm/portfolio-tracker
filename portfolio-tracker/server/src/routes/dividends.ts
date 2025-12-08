@@ -144,10 +144,10 @@ dividendsRouter.post('/', (req: Request, res: Response) => {
       return;
     }
 
-    if (!dividend.date || !dividend.amount || !dividend.ticker) {
+    if (!dividend.date || !dividend.amount || !dividend.ticker || !dividend.accountId) {
       res.status(400).json({
         error: 'Missing required fields',
-        details: 'Date, amount, and ticker are required',
+        details: 'Date, amount, ticker, and accountId are required',
       });
       return;
     }

@@ -22,6 +22,7 @@ export interface Dividend {
   amount: number;
   ticker: string;
   isReinvested: boolean;
+  accountId?: string;
   createdAt?: number;
 }
 
@@ -72,6 +73,7 @@ interface DividendRow {
   amount: number;
   ticker: string;
   is_reinvested: number;
+  account_id: string | null;
   created_at: number;
 }
 
@@ -88,6 +90,7 @@ function rowToDividend(row: DividendRow): Dividend {
     amount: row.amount,
     ticker: row.ticker,
     isReinvested: row.is_reinvested === 1,
+    accountId: row.account_id || undefined,
     createdAt: row.created_at,
   };
 }
@@ -127,7 +130,7 @@ export const dividendsService = {
    */
   getAll(): Dividend[] {
     const stmt = db.prepare(`
-      SELECT id, date, amount, ticker, is_reinvested, created_at
+      SELECT id, date, amount, ticker, is_reinvested, account_id, created_at
       FROM dividends
       ORDER BY date DESC, created_at DESC
     `);
@@ -144,7 +147,7 @@ export const dividendsService = {
    */
   getById(id: string): Dividend | undefined {
     const stmt = db.prepare(`
-      SELECT id, date, amount, ticker, is_reinvested, created_at
+      SELECT id, date, amount, ticker, is_reinvested, account_id, created_at
       FROM dividends
       WHERE id = ?
     `);
@@ -161,7 +164,7 @@ export const dividendsService = {
    */
   getByTicker(ticker: string): Dividend[] {
     const stmt = db.prepare(`
-      SELECT id, date, amount, ticker, is_reinvested, created_at
+      SELECT id, date, amount, ticker, is_reinvested, account_id, created_at
       FROM dividends
       WHERE ticker = ?
       ORDER BY date DESC, created_at DESC
@@ -178,10 +181,15 @@ export const dividendsService = {
    * @returns Created dividend with generated ID
    */
   create(dividend: Omit<Dividend, 'id'>): Dividend {
+    // Validate accountId is required for new dividends
+    if (!dividend.accountId) {
+      throw new Error('Account ID is required for new dividends');
+    }
+
     const id = randomUUID();
     const stmt = db.prepare(`
-      INSERT INTO dividends (id, date, amount, ticker, is_reinvested)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO dividends (id, date, amount, ticker, is_reinvested, account_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -189,7 +197,8 @@ export const dividendsService = {
       dividend.date,
       dividend.amount,
       dividend.ticker.toUpperCase(),
-      dividend.isReinvested ? 1 : 0
+      dividend.isReinvested ? 1 : 0,
+      dividend.accountId
     );
 
     return {
@@ -230,6 +239,10 @@ export const dividendsService = {
     if (dividend.isReinvested !== undefined) {
       updates.push('is_reinvested = ?');
       values.push(dividend.isReinvested ? 1 : 0);
+    }
+    if (dividend.accountId !== undefined) {
+      updates.push('account_id = ?');
+      values.push(dividend.accountId);
     }
 
     if (updates.length === 0) {

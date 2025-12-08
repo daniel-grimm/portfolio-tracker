@@ -10,6 +10,11 @@ import {
   Checkbox,
   MenuItem,
   Box,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  Alert,
 } from "@mui/material";
 import { usePortfolio } from "../../context/PortfolioContext";
 
@@ -24,18 +29,20 @@ export function AddDividendDialog({
   onClose,
   onSuccess,
 }: AddDividendDialogProps) {
-  const { stocks, addDividend } = usePortfolio();
+  const { stocks, accounts, addDividend } = usePortfolio();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0], // Today in YYYY-MM-DD
     amount: "",
     ticker: "",
+    accountId: "",
     isReinvested: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!formData.date || !formData.amount || !formData.ticker) {
+    if (!formData.date || !formData.amount || !formData.ticker || !formData.accountId) {
       setError("Please fill in all required fields");
       return;
     }
@@ -54,6 +61,7 @@ export function AddDividendDialog({
         date: formData.date,
         amount,
         ticker: formData.ticker,
+        accountId: formData.accountId,
         isReinvested: formData.isReinvested,
       });
 
@@ -62,6 +70,7 @@ export function AddDividendDialog({
         date: new Date().toISOString().split("T")[0],
         amount: "",
         ticker: "",
+        accountId: "",
         isReinvested: false,
       });
 
@@ -88,6 +97,48 @@ export function AddDividendDialog({
       </DialogTitle>
       <DialogContent sx={{ backgroundColor: "background.default" }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+          {/* Warning if no accounts */}
+          {accounts.length === 0 && (
+            <Alert severity="warning">
+              No accounts available. Please add an account first before adding a dividend.
+            </Alert>
+          )}
+
+          {/* Account Selection */}
+          <FormControl required error={!!errors.accountId} fullWidth>
+            <InputLabel>Select Account</InputLabel>
+            <Select
+              value={formData.accountId}
+              onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+              label="Select Account"
+            >
+              {accounts.length === 0 ? (
+                <MenuItem disabled sx={{ backgroundColor: "background.default" }}>
+                  No accounts available. Add an account first.
+                </MenuItem>
+              ) : (
+                accounts.map((account) => (
+                  <MenuItem
+                    key={account.id}
+                    value={account.id}
+                    sx={{
+                      backgroundColor: "background.default",
+                      "&:hover": {
+                        backgroundColor: "background.default",
+                        color: "text.primary",
+                      },
+                    }}
+                  >
+                    {account.name} ({account.platform})
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+            {errors.accountId && (
+              <FormHelperText>{errors.accountId}</FormHelperText>
+            )}
+          </FormControl>
+
           <TextField
             label="Date"
             type="date"

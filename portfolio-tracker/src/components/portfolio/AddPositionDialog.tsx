@@ -67,8 +67,8 @@ export function AddPositionDialog({ open, onClose }: AddPositionDialogProps) {
     }
 
     const quantityNum = parseFloat(quantity);
-    if (!quantity || isNaN(quantityNum) || quantityNum <= 0) {
-      newErrors.quantity = "Quantity must be greater than 0";
+    if (!quantity || isNaN(quantityNum) || quantityNum < 0) {
+      newErrors.quantity = "Quantity cannot be negative";
     }
 
     const costBasisNum = parseFloat(costBasis);

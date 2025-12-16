@@ -32,8 +32,6 @@ export function calculateStyleBoxAllocation(
   enrichedPositions.forEach((position) => {
     const stock = position.stock;
 
-    console.log(stock.styleMarketCapAllocations);
-
     if (isEtfOrMutualFund(stock) && stock.styleMarketCapAllocations) {
       // ETF/Mutual Fund: distribute value proportionally across style-market cap categories
       Object.entries(stock.styleMarketCapAllocations).forEach(([key, pct]) => {

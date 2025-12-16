@@ -109,15 +109,13 @@ export function EditDividendDialog({
   ): { [field: string]: string } => {
     const newErrors: { [field: string]: string } = {};
 
-    // Date: required, valid date, not in future
+    // Date: required, valid date
     if (!values.date) {
       newErrors.date = "Required";
     } else {
       const date = new Date(values.date);
       if (isNaN(date.getTime())) {
         newErrors.date = "Invalid date";
-      } else if (date > new Date()) {
-        newErrors.date = "Cannot be in future";
       }
     }
 

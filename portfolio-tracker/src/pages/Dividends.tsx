@@ -1,5 +1,4 @@
-import { Box, Button, Typography } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useCalculations } from '../hooks/useCalculations';
 import { useDividends } from '../hooks/useDividends';
@@ -71,13 +70,6 @@ export function Dividends() {
       {/* Growth Metrics Cards */}
       {metrics && <DividendGrowthMetrics metrics={metrics} yearlyData={yearlyData} />}
 
-      {/* Add Dividend Button */}
-      <Box sx={{ mt: 4, mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
-          Add Dividend
-        </Button>
-      </Box>
-
       {/* Add Dividend Dialog */}
       <AddDividendDialog
         open={dialogOpen}
@@ -97,6 +89,7 @@ export function Dividends() {
         dividends={dividends}
         onDelete={refresh}
         onEdit={handleEdit}
+        onAdd={() => setDialogOpen(true)}
       />
     </Box>
   );

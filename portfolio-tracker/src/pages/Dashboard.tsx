@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import { useCalculations } from '../hooks/useCalculations';
 import { MetricCard } from '../components/common/MetricCard';
 import { PortfolioTable } from '../components/portfolio/PortfolioTable';
+import { PortfolioValueChart } from '../components/portfolio/PortfolioValueChart';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
 export function Dashboard() {
@@ -38,6 +39,7 @@ export function Dashboard() {
           color={getGainLossColor(portfolioMetrics.totalGainLoss)}
         />
       </Box>
+      <PortfolioValueChart />
       <PortfolioTable positions={enrichedPositions} />
     </Box>
   );

@@ -72,3 +72,16 @@ export const api = {
     return handleResponse<T>(response);
   },
 };
+
+// Price History API
+export interface PortfolioValuePoint {
+  date: string;
+  value: number;
+}
+
+export async function getPortfolioValueHistory(days: number = 30): Promise<PortfolioValuePoint[]> {
+  const response = await api.get<{ portfolioValues: PortfolioValuePoint[] }>(
+    `/api/price-history/portfolio-value?days=${days}`
+  );
+  return response.portfolioValues;
+}

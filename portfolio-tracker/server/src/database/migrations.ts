@@ -212,5 +212,44 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_dividends_account_id ON dividends(account_id);
   `);
 
+  // Create price_history table for tracking historical stock prices
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS price_history (
+      -- UUID primary key for unique price record identification
+      id TEXT PRIMARY KEY,
+
+      -- Foreign key to stocks table
+      ticker TEXT NOT NULL,
+
+      -- Price at the time of recording in USD
+      price REAL NOT NULL CHECK(price > 0),
+
+      -- Unix timestamp in milliseconds when price was recorded
+      recorded_at INTEGER NOT NULL,
+
+      -- Unix timestamp in seconds when record was created
+      created_at INTEGER DEFAULT (unixepoch()),
+
+      -- Foreign key constraint
+      -- ON DELETE CASCADE: if stock is deleted, all its price history is deleted
+      FOREIGN KEY (ticker) REFERENCES stocks(ticker) ON DELETE CASCADE
+    );
+  `);
+
+  // Create indexes for efficient price history queries
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_price_history_ticker ON price_history(ticker);
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_price_history_recorded_at ON price_history(recorded_at);
+  `);
+
+  // Create unique index to prevent duplicate entries for same ticker at same timestamp
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_price_history_ticker_date
+    ON price_history(ticker, recorded_at);
+  `);
+
   console.log('Database migrations completed successfully');
 }

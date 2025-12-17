@@ -10,6 +10,7 @@
  */
 
 import { db } from "../database/db.js";
+import { priceHistoryService } from "./priceHistoryService.js";
 
 // Type definitions matching frontend
 export type SecurityType = "stock" | "etf" | "mutualfund";
@@ -329,6 +330,20 @@ export const stockService = {
       rowData.style_market_cap_allocations,
       ticker.toUpperCase()
     );
+
+    // Record price history if currentPrice was updated
+    if (stockUpdate.currentPrice !== undefined && stockUpdate.lastUpdated !== undefined) {
+      try {
+        priceHistoryService.recordPrice(
+          ticker,
+          stockUpdate.currentPrice,
+          stockUpdate.lastUpdated
+        );
+      } catch (error) {
+        console.error(`Failed to record price history for ${ticker}:`, error);
+        // Don't fail the update if price history recording fails
+      }
+    }
 
     return mergedStock;
   },

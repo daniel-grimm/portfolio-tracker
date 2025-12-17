@@ -7,38 +7,40 @@ A full-stack stock tracker application for monitoring and managing investment po
 The application follows a client-server architecture with clear separation of concerns:
 
 ```
-portfolio-tracker/
-├── portfolio-tracker/           # Frontend React application
+portfolio-tracker/           # Frontend React application
+├── src/
+│   ├── components/         # Reusable React components
+│   │   ├── analytics/      # Analytics visualizations
+│   │   ├── portfolio/      # Portfolio management components
+│   │   ├── dividends/      # Dividend tracking components
+│   │   ├── stocks/         # Stock management components
+│   │   ├── layout/         # Layout components (Header, etc.)
+│   │   └── common/         # Shared UI components
+│   ├── pages/              # Page-level components
+│   │   ├── Dashboard.tsx   # Main portfolio dashboard
+│   │   ├── Tickers.tsx     # Stock ticker management
+│   │   ├── Dividends.tsx   # Dividend tracking and analytics
+│   │   └── Analytics.tsx   # Portfolio analytics
+│   ├── services/           # API integration layer
+│   │   ├── ...
+│   ├── context/            # React Context for state management
+│   ├── hooks/              # Custom React hooks
+│   ├── types/              # TypeScript type definitions
+│   └── utils/              # Utility functions
+├── server/                 # Backend Express application
 │   ├── src/
-│   │   ├── components/         # Reusable React components
-│   │   │   ├── analytics/      # Analytics visualizations
-│   │   │   ├── portfolio/      # Portfolio management components
-│   │   │   ├── layout/         # Layout components (Header, etc.)
-│   │   │   └── common/         # Shared UI components
-│   │   ├── pages/              # Page-level components
-│   │   ├── services/           # API integration layer
-│   │   │   ├── finnhubService.ts    # Finnhub API client
-│   │   │   ├── stockDataService.ts  # Stock data aggregation
-│   │   │   └── holdingsApi.ts       # Backend API client
-│   │   ├── context/            # React Context for state management
-│   │   ├── hooks/              # Custom React hooks
-│   │   ├── types/              # TypeScript type definitions
-│   │   └── utils/              # Utility functions
-│   └── public/                 # Static assets
-│
-└── server/                     # Backend Express application
-    ├── src/
-    │   ├── database/           # Database layer
-    │   │   ├── db.ts          # SQLite connection & configuration
-    │   │   └── migrations.ts  # Database schema migrations
-    │   ├── routes/             # API route handlers
-    │   │   └── holdings.ts    # Holdings CRUD endpoints
-    │   ├── services/           # Business logic layer
-    │   │   └── holdingsService.ts
-    │   ├── middleware/         # Express middleware
-    │   │   └── errorHandler.ts
-    │   └── index.ts            # Server entry point
-    └── data/                   # SQLite database files
+│   │   ├── database/           # Database layer
+│   │   │   ├── db.ts          # SQLite connection & configuration
+│   │   │   └── migrations.ts  # Database schema migrations
+│   │   ├── routes/             # API route handlers
+│   │   │   ├── ...
+│   │   ├── services/           # Business logic layer
+│   │   │   ├── ...
+│   │   ├── middleware/         # Express middleware
+│   │   │   └── errorHandler.ts
+│   │   └── index.ts            # Server entry point
+│   └── data/                   # SQLite database files
+└── public/                 # Static assets
 ```
 
 # Development
@@ -50,7 +52,7 @@ portfolio-tracker/
 1. Navigate to the server directory:
 
    ```bash
-   cd portfolio-tracker/server
+   cd portfolio-tracker/portfolio-tracker/server
    ```
 
 2. Install dependencies:
@@ -71,13 +73,7 @@ portfolio-tracker/
    npm run dev
    ```
 
-The backend server will run on `http://localhost:3001` with the following endpoints:
-
-- `GET /health` - Health check endpoint
-- `GET /api/holdings` - Fetch all holdings
-- `POST /api/holdings` - Create a new holding
-- `PUT /api/holdings/:id` - Update a holding
-- `DELETE /api/holdings/:id` - Delete a holding
+The backend server will run on `http://localhost:3001`.
 
 ### Frontend Application Setup
 
@@ -93,10 +89,12 @@ The backend server will run on `http://localhost:3001` with the following endpoi
    npm install
    ```
 
-3. Create a `.env.local` file with your Finnhub API key:
+3. Create a `.env.local` file with your API keys:
 
    ```bash
-   VITE_FINNHUB_API_TOKEN=your_api_key_here
+   VITE_FINNHUB_API_TOKEN=your_finnhub_api_key_here
+   VITE_ALPHAVANTAGE_API_TOKEN=your_alphavantage_api_key_here
+   VITE_API_URL=http://localhost:3001
    ```
 
 4. Start the development server:
@@ -106,14 +104,14 @@ The backend server will run on `http://localhost:3001` with the following endpoi
 
 ## Available Scripts
 
-### Frontend (`portfolio-tracker/`)
+### Frontend (`portfolio-tracker/portfolio-tracker/`)
 
 - `npm run dev` - Start the Vite development server
 - `npm run build` - Build the application for production (TypeScript check + Vite build)
 - `npm run lint` - Run ESLint to check code quality
 - `npm run preview` - Preview the production build locally
 
-### Backend (`portfolio-tracker/server/`)
+### Backend (`portfolio-tracker/portfolio-tracker/server/`)
 
 - `npm run dev` - Start the Express server with hot reload (tsx watch)
 - `npm run build` - Compile TypeScript to JavaScript
@@ -128,23 +126,11 @@ The application uses SQLite for persistent, local data storage with the followin
 **Database Configuration**:
 
 - **Library**: better-sqlite3
-- **Location**: `server/data/portfolio.db`
+- **Location**: `portfolio-tracker/server/data/portfolio.db`
 - **Journal Mode**: WAL (Write-Ahead Logging)
 - **Migrations**: Automated schema management on server startup
 
-**Schema**:
-
-```sql
-CREATE TABLE holdings (
-  id TEXT PRIMARY KEY,
-  ticker TEXT NOT NULL,
-  quantity REAL NOT NULL,
-  cost_basis REAL NOT NULL,
-  purchase_date TEXT,
-  stock_data_snapshot TEXT NOT NULL,  -- JSON snapshot of stock data
-  created_at INTEGER DEFAULT (unixepoch())
-);
-```
+Refer to `portfolio-tracker/server/data/schema.md` for details about the table schema.
 
 ## Finnhub API Integration
 
@@ -174,7 +160,39 @@ The application integrates with Finnhub for real-time market data:
 **Rate Limits**:
 
 - Finnhub free tier: 60 API calls/minute
-- Application caches stock data snapshots in the database to minimize API calls
+- Application caches stock data in the database to minimize API calls
+
+## AlphaVantage API Integration
+
+The application integrates with AlphaVantage for mutual fund data:
+
+**API Endpoints Used**:
+
+- **Global Quote API** (`GLOBAL_QUOTE`): Current price for mutual funds and other securities not available on Finnhub
+
+**Data Fetched**:
+
+- Current price for mutual funds (e.g., FXAIX, VTSAX)
+- Normalized to match Finnhub's quote interface for consistency
+
+**Implementation Details**:
+
+- Used specifically for mutual fund quotes where Finnhub doesn't provide data
+- Returns normalized quote format (`{ c: price }`) matching Finnhub interface
+- Error handling for invalid tickers and API failures
+- TypeScript interfaces for type-safe API responses
+- API key configuration via environment variables (`VITE_ALPHAVANTAGE_API_TOKEN`)
+
+**Rate Limits**:
+
+- AlphaVantage free tier: 25 API calls/day, 5 calls/minute
+- Very limited free tier - use sparingly for mutual funds only
+
+# Security Type Support
+
+- **Stocks**: Individual company stocks with Finnhub integration
+- **ETFs**: Exchange-traded funds with sector/country allocations
+- **Mutual Funds**: Mutual funds with AlphaVantage integration
 
 # Technical Implementation
 
@@ -183,13 +201,15 @@ The application integrates with Finnhub for real-time market data:
 - **State Management**: React Context API for portfolio state
 - **Type Safety**: Full TypeScript coverage with strict mode
 - **Styling**: Emotion CSS-in-JS with Material-UI theme integration
-- **API Layer**: Separate service modules for Finnhub and backend communication
-- **Component Structure**: Feature-based organization (analytics, portfolio, layout)
+- **API Layer**: Separate service modules for Finnhub, AlphaVantage, and backend communication
+- **Component Structure**: Feature-based organization (analytics, portfolio, dividends, stocks, layout)
+- **Hooks**: Custom React hooks for calculations, dividends, and portfolio data
 
 ## Backend Architecture
 
 - **RESTful API**: Express routes with proper HTTP methods and status codes
 - **Error Handling**: Centralized middleware for consistent error responses
 - **Database Layer**: Separation of concerns (migrations, connection, queries)
-- **Business Logic**: Service layer for holdings operations
+- **Business Logic**: Service layer for stocks, positions, accounts, and dividends operations
 - **Environment Configuration**: dotenv for environment variables
+- **Normalized Data Model**: Stocks table as single source of truth with positions, accounts, and dividends referencing it

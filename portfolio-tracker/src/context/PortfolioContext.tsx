@@ -47,6 +47,12 @@ interface PortfolioContextType {
   addDividend: (dividend: Omit<Dividend, "id">) => Promise<void>;
   updateDividend: (id: string, dividend: Partial<Omit<Dividend, "id">>) => Promise<void>;
   deleteDividend: (id: string) => Promise<void>;
+  announceDividend: (
+    ticker: string,
+    perShareAmount: number,
+    paymentDate: string,
+    declarationDate?: string
+  ) => Promise<void>;
   refreshDividends: () => Promise<void>;
 
   // Refresh everything
@@ -322,6 +328,24 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
     }
   };
 
+  const announceDividend = async (
+    ticker: string,
+    perShareAmount: number,
+    paymentDate: string,
+    declarationDate?: string
+  ) => {
+    try {
+      setError(null);
+      await dividendsApi.announceDividend(ticker, perShareAmount, paymentDate, declarationDate);
+      // Refresh dividends to show newly created entries
+      await refreshDividends();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to announce dividend");
+      console.error("Error announcing dividend:", err);
+      throw err;
+    }
+  };
+
   const value: PortfolioContextType = {
     aggregatedPositions,
     stocks,
@@ -345,6 +369,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({
     addDividend,
     updateDividend,
     deleteDividend,
+    announceDividend,
     refreshDividends,
     refresh,
   };

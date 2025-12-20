@@ -37,6 +37,15 @@ export type MarketCap = "mega" | "large" | "mid" | "small" | "micro";
 export type Style = "value" | "blend" | "growth";
 
 /**
+ * Dividend payment frequency.
+ *
+ * - `annual`: Once per year
+ * - `quarterly`: Four times per year (most common)
+ * - `monthly`: Twelve times per year
+ */
+export type DividendFrequency = "annual" | "quarterly" | "monthly";
+
+/**
  * Stock sector categorization following standard industry classifications.
  *
  * Based on the Global Industry Classification Standard (GICS) sectors.
@@ -109,6 +118,12 @@ export interface StockData {
 
   /** Annual dividend payment per share in USD */
   annualDividend: number;
+
+  /** Dividend payment frequency (annual, quarterly, or monthly) */
+  dividendFrequency: DividendFrequency;
+
+  /** Trailing twelve months dividend (calculated from payment history, optional) */
+  ttmDividend?: number;
 
   /** Primary business sector */
   sector: Sector;

@@ -11,7 +11,7 @@ import {
   Box,
   Button,
 } from "@mui/material";
-import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from "@mui/icons-material";
+import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, Campaign as CampaignIcon } from "@mui/icons-material";
 import type { Dividend } from "../../types/dividend.types";
 import { formatCurrency, formatDate } from "../../utils/formatters";
 import { usePortfolio } from "../../context/PortfolioContext";
@@ -21,6 +21,7 @@ interface DividendHistoryTableProps {
   onDelete: () => void;
   onEdit: (dividend: Dividend) => void;
   onAdd: () => void;
+  onAnnounce: () => void;
 }
 
 export function DividendHistoryTable({
@@ -28,6 +29,7 @@ export function DividendHistoryTable({
   onDelete,
   onEdit,
   onAdd,
+  onAnnounce,
 }: DividendHistoryTableProps) {
   const { deleteDividend, accounts } = usePortfolio();
 
@@ -81,9 +83,14 @@ export function DividendHistoryTable({
         }}
       >
         <Typography variant="h6">Dividend History</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
-          Add Dividend
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button variant="outlined" startIcon={<CampaignIcon />} onClick={onAnnounce}>
+            Announce Dividend
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
+            Add Dividend
+          </Button>
+        </Box>
       </Box>
       <TableContainer>
         <Table>

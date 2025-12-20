@@ -69,4 +69,23 @@ export const dividendsApi = {
     const response = await api.get<{ cagr: number }>('/api/dividends/metrics/cagr');
     return response.cagr;
   },
+
+  async announceDividend(
+    ticker: string,
+    perShareAmount: number,
+    paymentDate: string,
+    declarationDate?: string
+  ): Promise<{ dividends: Dividend[]; count: number; message: string }> {
+    const response = await api.post<{
+      dividends: Dividend[];
+      count: number;
+      message: string;
+    }>('/api/dividends/announce', {
+      ticker,
+      perShareAmount,
+      paymentDate,
+      declarationDate,
+    });
+    return response;
+  },
 };

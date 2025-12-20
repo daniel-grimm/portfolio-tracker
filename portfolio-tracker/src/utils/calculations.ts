@@ -23,15 +23,19 @@ export function enrichPosition(
   const totalCost = position.totalQuantity * position.weightedAverageCostBasis;
   const gainLoss = currentValue - totalCost;
   const gainLossPercent = totalCost > 0 ? (gainLoss / totalCost) * 100 : 0;
+
+  // Use TTM dividend when available, fallback to manual annual dividend
+  const effectiveDividend = stock.ttmDividend ?? stock.annualDividend;
+
   const dividendYield =
     stock.currentPrice > 0
-      ? (stock.annualDividend / stock.currentPrice) * 100
+      ? (effectiveDividend / stock.currentPrice) * 100
       : 0;
   const yieldOnCost =
     position.weightedAverageCostBasis > 0
-      ? (stock.annualDividend / position.weightedAverageCostBasis) * 100
+      ? (effectiveDividend / position.weightedAverageCostBasis) * 100
       : 0;
-  const annualIncome = position.totalQuantity * stock.annualDividend;
+  const annualIncome = position.totalQuantity * effectiveDividend;
 
   return {
     ...position,

@@ -125,6 +125,10 @@ export function runMigrations(db: Database.Database): void {
   // Add style-market cap allocation percentages for ETFs and mutual funds
   addColumnIfNotExists(db, 'stocks', 'style_market_cap_allocations', 'TEXT');
 
+  // Add dividend frequency column for tracking payment intervals
+  addColumnIfNotExists(db, 'stocks', 'dividend_frequency',
+    "TEXT CHECK(dividend_frequency IN ('annual', 'quarterly', 'monthly')) DEFAULT 'quarterly'");
+
   // Migrate existing data to use security_type
   // This is safe to run multiple times - only updates rows where security_type is NULL
   db.exec(`
@@ -249,6 +253,44 @@ export function runMigrations(db: Database.Database): void {
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_price_history_ticker_date
     ON price_history(ticker, recorded_at);
+  `);
+
+  // Create dividend_declarations table for tracking dividend announcements
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS dividend_declarations (
+      -- UUID primary key for unique declaration identification
+      id TEXT PRIMARY KEY,
+
+      -- Foreign key to stocks table
+      ticker TEXT NOT NULL,
+
+      -- Dividend amount per share in USD
+      per_share_amount REAL NOT NULL CHECK(per_share_amount > 0),
+
+      -- Date when dividend was declared/announced (ISO 8601: YYYY-MM-DD)
+      declaration_date TEXT NOT NULL,
+
+      -- Date when dividend will be/was paid (ISO 8601: YYYY-MM-DD)
+      payment_date TEXT NOT NULL,
+
+      -- Unix timestamp in seconds when record was created
+      created_at INTEGER DEFAULT (unixepoch()),
+
+      -- Foreign key constraint
+      -- ON DELETE CASCADE: if stock is deleted, all its dividend declarations are deleted
+      FOREIGN KEY (ticker) REFERENCES stocks(ticker) ON DELETE CASCADE
+    );
+  `);
+
+  // Create indexes for efficient dividend declaration queries
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_dividend_declarations_ticker
+    ON dividend_declarations(ticker);
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_dividend_declarations_payment_date
+    ON dividend_declarations(payment_date);
   `);
 
   console.log('Database migrations completed successfully');

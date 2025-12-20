@@ -11,11 +11,13 @@
 
 import { db } from "../database/db.js";
 import { priceHistoryService } from "./priceHistoryService.js";
+import { dividendDeclarationsService } from "./dividendDeclarationsService.js";
 
 // Type definitions matching frontend
 export type SecurityType = "stock" | "etf" | "mutualfund";
 export type MarketCap = "mega" | "large" | "mid" | "small" | "micro";
 export type Style = "value" | "blend" | "growth";
+export type DividendFrequency = "annual" | "quarterly" | "monthly";
 export type Sector =
   | "Technology"
   | "Healthcare"
@@ -74,6 +76,8 @@ export interface Stock {
   name: string;
   currentPrice: number;
   annualDividend: number;
+  dividendFrequency: DividendFrequency;
+  ttmDividend?: number; // Trailing twelve months dividend (calculated from declarations)
   sector: Sector;
   country: string;
   marketCap: MarketCap;
@@ -99,6 +103,7 @@ interface StockRow {
   name: string;
   current_price: number;
   annual_dividend: number;
+  dividend_frequency: string | null;
   sector: string;
   country: string;
   market_cap: string;
@@ -125,12 +130,18 @@ interface StockRow {
  */
 function rowToStock(row: StockRow): Stock {
   const securityType = row.security_type as SecurityType;
+  const dividendFrequency = (row.dividend_frequency as DividendFrequency) || 'quarterly';
+
+  // Calculate TTM dividend from dividend declarations
+  const ttmDividend = dividendDeclarationsService.getTTMDividend(row.ticker, dividendFrequency);
 
   return {
     ticker: row.ticker,
     name: row.name,
     currentPrice: row.current_price,
     annualDividend: row.annual_dividend,
+    dividendFrequency: dividendFrequency,
+    ttmDividend: ttmDividend || undefined,
     sector: row.sector as Sector,
     country: row.country,
     marketCap: row.market_cap as MarketCap,
@@ -167,6 +178,7 @@ function stockToRow(stock: Stock) {
     name: stock.name,
     current_price: stock.currentPrice,
     annual_dividend: stock.annualDividend,
+    dividend_frequency: stock.dividendFrequency,
     sector: stock.sector,
     country: stock.country,
     market_cap: stock.marketCap,
@@ -228,16 +240,17 @@ export const stockService = {
 
     const stmt = db.prepare(`
       INSERT INTO stocks (
-        ticker, name, current_price, annual_dividend,
+        ticker, name, current_price, annual_dividend, dividend_frequency,
         sector, country, market_cap, style, is_domestic, last_updated,
         security_type, description, sector_allocations, country_allocations,
         style_market_cap_allocations
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(ticker) DO UPDATE SET
         name = excluded.name,
         current_price = excluded.current_price,
         annual_dividend = excluded.annual_dividend,
+        dividend_frequency = excluded.dividend_frequency,
         sector = excluded.sector,
         country = excluded.country,
         market_cap = excluded.market_cap,
@@ -256,6 +269,7 @@ export const stockService = {
       rowData.name,
       rowData.current_price,
       rowData.annual_dividend,
+      rowData.dividend_frequency,
       rowData.sector,
       rowData.country,
       rowData.market_cap,
@@ -299,6 +313,7 @@ export const stockService = {
       SET name = ?,
           current_price = ?,
           annual_dividend = ?,
+          dividend_frequency = ?,
           sector = ?,
           country = ?,
           market_cap = ?,
@@ -317,6 +332,7 @@ export const stockService = {
       rowData.name,
       rowData.current_price,
       rowData.annual_dividend,
+      rowData.dividend_frequency,
       rowData.sector,
       rowData.country,
       rowData.market_cap,

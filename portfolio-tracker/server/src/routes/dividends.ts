@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { dividendsService } from '../services/dividendsService.js';
+import { dividendDeclarationsService } from '../services/dividendDeclarationsService.js';
+import { positionsService } from '../services/positionsService.js';
 
 export const dividendsRouter = Router();
 
@@ -210,6 +212,98 @@ dividendsRouter.delete('/:id', (req: Request, res: Response) => {
     console.error('Error deleting dividend:', error);
     res.status(500).json({
       error: 'Failed to delete dividend',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// POST /api/dividends/announce - Announce dividend for all positions of a ticker
+dividendsRouter.post('/announce', (req: Request, res: Response) => {
+  try {
+    const { ticker, perShareAmount, declarationDate, paymentDate } = req.body;
+
+    if (!ticker || !perShareAmount || !paymentDate) {
+      res.status(400).json({
+        error: 'Missing required fields',
+        details: 'ticker, perShareAmount, and paymentDate are required',
+      });
+      return;
+    }
+
+    if (perShareAmount <= 0) {
+      res.status(400).json({
+        error: 'Invalid amount',
+        details: 'perShareAmount must be greater than 0',
+      });
+      return;
+    }
+
+    // 1. Create dividend declaration
+    const declaration = dividendDeclarationsService.create({
+      ticker: ticker.toUpperCase(),
+      perShareAmount,
+      declarationDate: declarationDate || paymentDate,
+      paymentDate,
+    });
+
+    // 2. Get all positions for this ticker across all accounts
+    const positions = positionsService.getByTicker(ticker);
+
+    if (positions.length === 0) {
+      res.status(404).json({
+        error: 'No positions found',
+        details: `No positions found for ticker ${ticker}`,
+      });
+      return;
+    }
+
+    // 3. Group positions by account_id
+    const positionsByAccount = new Map<string, typeof positions>();
+
+    for (const position of positions) {
+      if (!position.accountId) {
+        continue; // Skip positions without account (legacy data)
+      }
+
+      if (!positionsByAccount.has(position.accountId)) {
+        positionsByAccount.set(position.accountId, []);
+      }
+      positionsByAccount.get(position.accountId)!.push(position);
+    }
+
+    // 4. Create dividend entries for each account
+    const createdDividends = [];
+
+    for (const [accountId, accountPositions] of positionsByAccount) {
+      // Sum all shares in this account for this ticker
+      const totalShares = accountPositions.reduce(
+        (sum, pos) => sum + pos.quantity,
+        0
+      );
+
+      const dividendAmount = totalShares * perShareAmount;
+
+      const dividend = dividendsService.create({
+        date: paymentDate,
+        amount: dividendAmount,
+        ticker: ticker.toUpperCase(),
+        accountId: accountId,
+        isReinvested: false, // Default to false, user can edit
+      });
+
+      createdDividends.push(dividend);
+    }
+
+    res.status(201).json({
+      declaration,
+      dividends: createdDividends,
+      count: createdDividends.length,
+      message: `Created ${createdDividends.length} dividend entries across accounts`,
+    });
+  } catch (error) {
+    console.error('Error announcing dividend:', error);
+    res.status(500).json({
+      error: 'Failed to announce dividend',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }

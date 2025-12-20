@@ -8,6 +8,7 @@ import { DividendCharts } from '../components/dividends/DividendCharts';
 import { DividendGrowthMetrics } from '../components/dividends/DividendGrowthMetrics';
 import { AddDividendDialog } from '../components/dividends/AddDividendDialog';
 import { EditDividendDialog } from '../components/dividends/EditDividendDialog';
+import { AnnounceDividendDialog } from '../components/dividends/AnnounceDividendDialog';
 import { DividendHistoryTable } from '../components/dividends/DividendHistoryTable';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import type { Dividend } from '../types/dividend.types';
@@ -18,6 +19,7 @@ export function Dividends() {
   const { dividends } = usePortfolio();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [announceDialogOpen, setAnnounceDialogOpen] = useState(false);
   const [dividendToEdit, setDividendToEdit] = useState<Dividend | null>(null);
 
   const handleEdit = (dividend: Dividend) => {
@@ -84,12 +86,20 @@ export function Dividends() {
         dividend={dividendToEdit}
       />
 
+      {/* Announce Dividend Dialog */}
+      <AnnounceDividendDialog
+        open={announceDialogOpen}
+        onClose={() => setAnnounceDialogOpen(false)}
+        onSuccess={refresh}
+      />
+
       {/* Bottom Section - Dividend History Table */}
       <DividendHistoryTable
         dividends={dividends}
         onDelete={refresh}
         onEdit={handleEdit}
         onAdd={() => setDialogOpen(true)}
+        onAnnounce={() => setAnnounceDialogOpen(true)}
       />
     </Box>
   );

@@ -26,6 +26,7 @@ import type {
   Sector,
   Style,
   MarketCap,
+  DividendFrequency,
   SectorAllocationMap,
   CountryAllocationMap,
   StyleMarketCapAllocationMap,
@@ -58,6 +59,7 @@ export function EditStockDialog({
   const [companyName, setCompanyName] = useState("");
   const [currentPrice, setCurrentPrice] = useState("");
   const [annualDividend, setAnnualDividend] = useState("");
+  const [dividendFrequency, setDividendFrequency] = useState<DividendFrequency>("quarterly");
   const [sector, setSector] = useState<Sector | "">("");
   const [marketCap, setMarketCap] = useState<MarketCap | "">("");
   const [style, setStyle] = useState<Style | "">("");
@@ -81,6 +83,7 @@ export function EditStockDialog({
       setCompanyName(stock.name);
       setCurrentPrice(stock.currentPrice.toString());
       setAnnualDividend(stock.annualDividend.toString());
+      setDividendFrequency(stock.dividendFrequency || "quarterly");
       setSector(stock.sector);
       setMarketCap(stock.marketCap);
       setStyle(stock.style);
@@ -388,6 +391,7 @@ export function EditStockDialog({
       name: companyName,
       currentPrice: parseFloat(currentPrice),
       annualDividend: parseFloat(annualDividend) || 0,
+      dividendFrequency: dividendFrequency,
       sector: dominantSector,
       country: dominantCountry,
       marketCap: isEtfOrMutualFund(stock)
@@ -511,6 +515,29 @@ export function EditStockDialog({
             fullWidth
             inputProps={{ min: 0, step: 0.01 }}
           />
+
+          {/* Dividend Frequency */}
+          <FormControl fullWidth>
+            <InputLabel>Dividend Frequency</InputLabel>
+            <Select
+              value={dividendFrequency}
+              onChange={(e) => setDividendFrequency(e.target.value as DividendFrequency)}
+              label="Dividend Frequency"
+            >
+              <MenuItem value="annual" sx={{ backgroundColor: "background.default" }}>
+                Annual (once per year)
+              </MenuItem>
+              <MenuItem value="quarterly" sx={{ backgroundColor: "background.default" }}>
+                Quarterly (4x per year)
+              </MenuItem>
+              <MenuItem value="monthly" sx={{ backgroundColor: "background.default" }}>
+                Monthly (12x per year)
+              </MenuItem>
+            </Select>
+            <FormHelperText>
+              How often does this {stock.securityType === "stock" ? "stock" : "fund"} pay dividends?
+            </FormHelperText>
+          </FormControl>
 
           {/* Stock-Specific Fields */}
           {!isEtfOrMutualFund(stock) && (

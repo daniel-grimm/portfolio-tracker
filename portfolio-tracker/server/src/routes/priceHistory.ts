@@ -15,7 +15,7 @@ priceHistoryRouter.get("/portfolio-value", (req: Request, res: Response) => {
     const startTime = endTime - days * 24 * 60 * 60 * 1000;
 
     // Get current positions (aggregated)
-    const positions = positionsService.getAll();
+    const positions = positionsService.getAggregatedPositions();
 
     if (positions.length === 0) {
       res.json({ portfolioValues: [] });

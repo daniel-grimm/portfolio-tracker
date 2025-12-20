@@ -153,7 +153,7 @@ export function DividendCharts({ quarterlyData, yearlyData }: DividendChartsProp
                 position: 'insideLeft',
               }}
             />
-            <Tooltip content={<CustomDividendTooltip />} />
+            <Tooltip content={<CustomDividendTooltip />} wrapperStyle={{ zIndex: 1000 }} />
             <Legend />
             {tickers.map((ticker, index) => (
               <Bar
@@ -183,7 +183,7 @@ export function DividendCharts({ quarterlyData, yearlyData }: DividendChartsProp
                 position: 'insideLeft',
               }}
             />
-            <Tooltip content={<CustomDividendTooltip />} />
+            <Tooltip content={<CustomDividendTooltip />} wrapperStyle={{ zIndex: 1000 }} />
             <Legend />
             {tickers.map((ticker, index) => (
               <Bar

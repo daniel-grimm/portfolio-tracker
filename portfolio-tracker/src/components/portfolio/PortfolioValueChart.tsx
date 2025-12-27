@@ -47,6 +47,23 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   );
 };
 
+const calculateYAxisDomain = (data: PortfolioValuePoint[]): [number, number] => {
+  if (data.length === 0) return [0, 1000];
+
+  const values = data.map(d => d.value);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+
+  // Use 10% padding or $100, whichever is greater
+  const range = maxValue - minValue;
+  const padding = Math.max(range * 0.10, 100);
+
+  return [
+    Math.max(0, minValue - padding),  // Don't go below 0
+    maxValue + padding
+  ];
+};
+
 export function PortfolioValueChart() {
   const [data, setData] = useState<PortfolioValuePoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +121,8 @@ export function PortfolioValueChart() {
     );
   }
 
+  const yAxisDomain = calculateYAxisDomain(data);
+
   return (
     <Paper sx={{ p: 3, mb: 4, backgroundColor: 'primary.dark' }} elevation={2}>
       <Typography variant="h6" gutterBottom>
@@ -120,7 +139,8 @@ export function PortfolioValueChart() {
             height={80}
           />
           <YAxis
-            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            domain={yAxisDomain}
+            tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
             label={{
               value: 'Portfolio Value',
               angle: -90,

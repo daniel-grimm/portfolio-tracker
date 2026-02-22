@@ -2,6 +2,13 @@
   "name": "shared",
   "version": "0.0.1",
   "private": true,
-  "main": "./types.ts",
-  "types": "./types.ts"
+  "type": "module",
+  "main": "./dist/types.js",
+  "types": "./dist/types.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  }
 }

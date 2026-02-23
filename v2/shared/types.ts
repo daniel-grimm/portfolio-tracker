@@ -95,3 +95,79 @@ export type PriceQuote = {
   closePrice: number
   fetchedAt: Date
 }
+
+// ── Input types ───────────────────────────────────────────────────────────────
+
+export type CreatePortfolioInput = {
+  name: string
+  description?: string | null
+}
+
+export type UpdatePortfolioInput = {
+  name?: string
+  description?: string | null
+}
+
+export type CreateAccountInput = {
+  name: string
+  description?: string | null
+}
+
+export type UpdateAccountInput = {
+  name?: string
+  description?: string | null
+}
+
+export type CreateHoldingInput = {
+  ticker: string
+  shares: string
+  avgCostBasis: string
+  purchaseDate: string
+}
+
+export type UpdateHoldingInput = {
+  ticker?: string
+  shares?: string
+  avgCostBasis?: string
+  purchaseDate?: string
+}
+
+export type AggregatedHolding = {
+  ticker: string
+  totalShares: string
+  weightedAvgCostBasis: string
+  holdings: Holding[]
+}
+
+export type CreateDividendInput = {
+  amountPerShare: string
+  exDate: string
+  payDate: string
+  recordDate?: string | null
+  status?: DividendStatus
+}
+
+export type UpdateDividendInput = {
+  amountPerShare?: string
+  exDate?: string
+  payDate?: string
+  recordDate?: string | null
+  status?: DividendStatus
+}
+
+export type ValueHistoryRange = '1m' | '3m' | '6m' | '1y' | 'all'
+
+export type PortfolioBreakdown = {
+  id: string
+  name: string
+  totalValue: number
+  costBasis: number
+  gainLoss: number
+}
+
+export type DashboardSummary = {
+  ytdIncome: number
+  allTimeIncome: number
+  projectedAnnual: number
+  portfolioBreakdown: PortfolioBreakdown[]
+}

@@ -1,25 +1,26 @@
-// Test database helpers using pg-mem for in-memory Postgres.
-// Applies the real Drizzle schema migration SQL to pg-mem so service tests
-// run against a realistic schema without hitting the real Neon database.
+// Test database helpers using PGLite — real PostgreSQL compiled to WASM.
+// PGLite is fully compatible with drizzle-orm and avoids the rowMode/fields
+// incompatibilities that pg-mem has with drizzle-orm v0.41+.
 
-import { IMemoryDb, newDb } from 'pg-mem'
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { PGlite } from '@electric-sql/pglite'
+import { drizzle } from 'drizzle-orm/pglite'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import * as schema from '../../server/src/db/schema.js'
+import type { DbInstance } from '../../server/src/db/index.js'
+
+export type { DbInstance }
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-export type DbInstance = NodePgDatabase<typeof schema>
-
 export type TestDb = {
-  mem: IMemoryDb
+  client: PGlite
   db: DbInstance
 }
 
-function applySchema(mem: IMemoryDb): void {
+async function applySchema(client: PGlite): Promise<void> {
   const sqlPath = join(
     __dirname,
     '../../server/src/db/migrations/0000_nostalgic_lady_vermin.sql',
@@ -32,33 +33,29 @@ function applySchema(mem: IMemoryDb): void {
 
   for (const stmt of statements) {
     try {
-      mem.public.none(stmt)
+      await client.exec(stmt)
     } catch {
-      // pg-mem doesn't support all Postgres syntax (e.g. USING btree) — skip those
+      // PGLite doesn't support every Postgres syntax — skip unsupported ones
     }
   }
 }
 
-export function createTestDb(): TestDb {
-  const mem = newDb()
-  applySchema(mem)
-
-  const { Pool } = mem.adapters.createPg()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pool = new Pool() as any
-  const db = drizzle(pool, { schema })
-
-  return { mem, db }
+export async function createTestDb(): Promise<TestDb> {
+  const client = new PGlite()
+  await applySchema(client)
+  const db = drizzle(client, { schema }) as unknown as DbInstance
+  return { client, db }
 }
 
 export async function withTestTransaction<T>(
   testDb: TestDb,
   fn: (db: DbInstance) => Promise<T>,
 ): Promise<T> {
-  const backup = testDb.mem.backup()
+  // PGLite supports real transactions — use BEGIN/ROLLBACK for isolation
+  await testDb.client.exec('BEGIN')
   try {
     return await fn(testDb.db)
   } finally {
-    testDb.mem.restore(backup)
+    await testDb.client.exec('ROLLBACK')
   }
 }

@@ -30,19 +30,25 @@ export function NavBar() {
   return (
     <header className="border-b bg-background">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <nav className="flex items-center gap-6">
-          <Link to="/" className="font-semibold">
+        <nav className="flex items-center gap-4 sm:gap-6 overflow-x-auto">
+          <Link to="/" className="font-semibold shrink-0">
             VibeFolio
           </Link>
           <Link
             to="/portfolios"
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
           >
             Portfolios
           </Link>
           <Link
+            to="/dividends"
+            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
+          >
+            Dividends
+          </Link>
+          <Link
             to="/calendar"
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
           >
             Calendar
           </Link>

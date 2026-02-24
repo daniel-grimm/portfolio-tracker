@@ -126,7 +126,7 @@ function HoldingForm({
 }
 
 type DividendFormValues = {
-  holdingId: string
+  ticker: string
   amountPerShare: string
   exDate: string
   payDate: string
@@ -145,6 +145,14 @@ function DividendForm({
   onSubmit: (values: DividendFormValues) => void
   isSubmitting: boolean
 }) {
+  const uniqueTickers = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const h of holdings) {
+      map.set(h.ticker, (map.get(h.ticker) ?? 0) + Number(h.shares))
+    }
+    return Array.from(map.entries())
+  }, [holdings])
+
   const {
     register,
     handleSubmit,
@@ -153,7 +161,7 @@ function DividendForm({
     formState: { errors },
   } = useForm<DividendFormValues>({
     defaultValues: defaultValues ?? {
-      holdingId: holdings[0]?.id ?? '',
+      ticker: holdings[0]?.ticker ?? '',
       amountPerShare: '',
       exDate: '',
       payDate: '',
@@ -163,25 +171,25 @@ function DividendForm({
   })
 
   const statusValue = watch('status')
-  const holdingIdValue = watch('holdingId')
+  const tickerValue = watch('ticker')
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         {!defaultValues && (
           <div className="space-y-1 col-span-2">
-            <Label>Holding</Label>
+            <Label>Ticker</Label>
             <Select
-              value={holdingIdValue}
-              onValueChange={(v) => setValue('holdingId', v)}
+              value={tickerValue}
+              onValueChange={(v) => setValue('ticker', v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select holding" />
+                <SelectValue placeholder="Select ticker" />
               </SelectTrigger>
               <SelectContent>
-                {holdings.map((h) => (
-                  <SelectItem key={h.id} value={h.id}>
-                    {h.ticker} ({Number(h.shares).toLocaleString()} shares)
+                {uniqueTickers.map(([ticker, totalShares]) => (
+                  <SelectItem key={ticker} value={ticker}>
+                    {ticker} ({totalShares.toLocaleString()} shares)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -246,7 +254,21 @@ type AggregatedRow = {
   weightedAvgCostBasis: number
 }
 
-type SortKey = 'ticker' | 'totalShares' | 'weightedAvgCostBasis'
+type SortKey =
+  | 'ticker'
+  | 'totalShares'
+  | 'weightedAvgCostBasis'
+  | 'currentPrice'
+  | 'value'
+  | 'gainLoss'
+  | 'returnPct'
+
+type EnrichedRow = AggregatedRow & {
+  currentPrice: number | null
+  value: number | null
+  gainLoss: number | null
+  returnPct: number | null
+}
 
 export function AccountDetail() {
   const { id } = useParams<{ id: string }>()
@@ -315,15 +337,36 @@ export function AccountDetail() {
     }))
   }, [holdings])
 
+  const enrichedHoldings = useMemo<EnrichedRow[]>(() => {
+    return aggregatedHoldings.map((row) => {
+      const priceData = priceByTicker.get(row.ticker)
+      if (!priceData) return { ...row, currentPrice: null, value: null, gainLoss: null, returnPct: null }
+      const price = Number(priceData.closePrice)
+      const value = row.totalShares * price
+      const gainLoss = (price - row.weightedAvgCostBasis) * row.totalShares
+      const returnPct = row.weightedAvgCostBasis > 0
+        ? ((price - row.weightedAvgCostBasis) / row.weightedAvgCostBasis) * 100
+        : null
+      return { ...row, currentPrice: price, value, gainLoss, returnPct }
+    })
+  }, [aggregatedHoldings, priceByTicker])
+
   const sortedHoldings = useMemo(() => {
-    return [...aggregatedHoldings].sort((a, b) => {
-      const cmp =
-        sortKey === 'ticker'
-          ? a.ticker.localeCompare(b.ticker)
-          : a[sortKey] - b[sortKey]
+    return [...enrichedHoldings].sort((a, b) => {
+      let cmp: number
+      if (sortKey === 'ticker') {
+        cmp = a.ticker.localeCompare(b.ticker)
+      } else {
+        const av = a[sortKey]
+        const bv = b[sortKey]
+        if (av === null && bv === null) cmp = 0
+        else if (av === null) return 1
+        else if (bv === null) return -1
+        else cmp = av - bv
+      }
       return sortAsc ? cmp : -cmp
     })
-  }, [aggregatedHoldings, sortKey, sortAsc])
+  }, [enrichedHoldings, sortKey, sortAsc])
 
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -349,7 +392,8 @@ export function AccountDetail() {
 
   const createDivMutation = useMutation({
     mutationFn: (values: DividendFormValues) =>
-      createDividend(values.holdingId, {
+      createDividend(id!, {
+        ticker: values.ticker,
         amountPerShare: values.amountPerShare,
         exDate: values.exDate,
         payDate: values.payDate,
@@ -465,10 +509,10 @@ export function AccountDetail() {
                   <SortHeader col="ticker" label="Ticker" />
                   <SortHeader col="totalShares" label="Shares" />
                   <SortHeader col="weightedAvgCostBasis" label="Avg Cost" />
-                  <TableHead>Current Price</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Gain/Loss</TableHead>
-                  <TableHead>Return %</TableHead>
+                  <SortHeader col="currentPrice" label="Current Price" />
+                  <SortHeader col="value" label="Value" />
+                  <SortHeader col="gainLoss" label="Gain/Loss" />
+                  <SortHeader col="returnPct" label="Return %" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -477,43 +521,34 @@ export function AccountDetail() {
                     <TableCell className="font-medium">{row.ticker}</TableCell>
                     <TableCell>{row.totalShares.toLocaleString()}</TableCell>
                     <TableCell>${row.weightedAvgCostBasis.toFixed(2)}</TableCell>
-                    {(() => {
+                    {row.currentPrice === null ? (
+                      <>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                      </>
+                    ) : (() => {
                       const priceData = priceByTicker.get(row.ticker)
-                      if (!priceData) {
-                        return (
-                          <>
-                            <TableCell className="text-muted-foreground">—</TableCell>
-                            <TableCell className="text-muted-foreground">—</TableCell>
-                            <TableCell className="text-muted-foreground">—</TableCell>
-                            <TableCell className="text-muted-foreground">—</TableCell>
-                          </>
-                        )
-                      }
-                      const price = Number(priceData.closePrice)
-                      const value = row.totalShares * price
-                      const gainLoss = (price - row.weightedAvgCostBasis) * row.totalShares
-                      const returnPct = row.weightedAvgCostBasis > 0
-                        ? ((price - row.weightedAvgCostBasis) / row.weightedAvgCostBasis) * 100
-                        : 0
-                      const isStale = priceData.date !== today
+                      const isStale = priceData?.date !== today
                       return (
                         <>
                           <TableCell>
                             <span className={isStale ? 'text-muted-foreground' : ''}>
-                              ${price.toFixed(2)}
+                              ${row.currentPrice.toFixed(2)}
                               {isStale && (
-                                <span className="ml-1 text-xs text-yellow-500" title={`As of ${priceData.date}`}>
+                                <span className="ml-1 text-xs text-yellow-500" title={`As of ${priceData?.date}`}>
                                   ●
                                 </span>
                               )}
                             </span>
                           </TableCell>
-                          <TableCell>${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                          <TableCell className={gainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                            {gainLoss >= 0 ? '+' : ''}${Math.abs(gainLoss).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <TableCell>${row.value!.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                          <TableCell className={row.gainLoss! >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            {row.gainLoss! >= 0 ? '+' : ''}${Math.abs(row.gainLoss!).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
-                          <TableCell className={returnPct >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                            {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(2)}%
+                          <TableCell className={(row.returnPct ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            {(row.returnPct ?? 0) >= 0 ? '+' : ''}{(row.returnPct ?? 0).toFixed(2)}%
                           </TableCell>
                         </>
                       )
@@ -626,7 +661,7 @@ export function AccountDetail() {
             <DividendForm
               holdings={holdings}
               defaultValues={{
-                holdingId: editDivTarget.holdingId,
+                ticker: editDivTarget.ticker,
                 amountPerShare: editDivTarget.amountPerShare,
                 exDate: editDivTarget.exDate,
                 payDate: editDivTarget.payDate,

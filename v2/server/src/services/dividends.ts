@@ -2,14 +2,13 @@ import { eq, and } from 'drizzle-orm'
 import type { DbInstance } from '../db/index.js'
 import { dividends, holdings, accounts, portfolios } from '../db/schema.js'
 import { NotFoundError } from '../lib/errors.js'
-import { getHoldingById } from './holdings.js'
 import { getAccountById } from './accounts.js'
 import { getPortfolioById } from './portfolios.js'
 import type { Dividend, CreateDividendInput, UpdateDividendInput } from 'shared'
 
 const dividendColumns = {
   id: dividends.id,
-  holdingId: dividends.holdingId,
+  accountId: dividends.accountId,
   ticker: dividends.ticker,
   amountPerShare: dividends.amountPerShare,
   totalAmount: dividends.totalAmount,
@@ -21,23 +20,21 @@ const dividendColumns = {
   updatedAt: dividends.updatedAt,
 }
 
-async function getDividendWithHolding(
+async function getDividendWithAccount(
   db: DbInstance,
   dividendId: string,
   userId: string,
-): Promise<{ dividend: Dividend; shares: string }> {
+): Promise<Dividend> {
   const [row] = await db
-    .select({ ...dividendColumns, shares: holdings.shares })
+    .select(dividendColumns)
     .from(dividends)
-    .innerJoin(holdings, eq(dividends.holdingId, holdings.id))
-    .innerJoin(accounts, eq(holdings.accountId, accounts.id))
+    .innerJoin(accounts, eq(dividends.accountId, accounts.id))
     .innerJoin(portfolios, eq(accounts.portfolioId, portfolios.id))
     .where(and(eq(dividends.id, dividendId), eq(portfolios.userId, userId)))
 
   if (!row) throw new NotFoundError(`Dividend ${dividendId} not found`)
 
-  const { shares, ...dividend } = row
-  return { dividend, shares }
+  return row
 }
 
 export async function getDividendById(
@@ -45,24 +42,30 @@ export async function getDividendById(
   dividendId: string,
   userId: string,
 ): Promise<Dividend> {
-  const { dividend } = await getDividendWithHolding(db, dividendId, userId)
-  return dividend
+  return getDividendWithAccount(db, dividendId, userId)
 }
 
 export async function createDividend(
   db: DbInstance,
-  holdingId: string,
+  accountId: string,
   userId: string,
   input: CreateDividendInput,
 ): Promise<Dividend> {
-  const holding = await getHoldingById(db, holdingId, userId)
-  const totalAmount = (Number(input.amountPerShare) * Number(holding.shares)).toString()
+  await getAccountById(db, accountId, userId)
+
+  const lotsForTicker = await db
+    .select({ shares: holdings.shares })
+    .from(holdings)
+    .where(and(eq(holdings.accountId, accountId), eq(holdings.ticker, input.ticker)))
+
+  const totalShares = lotsForTicker.reduce((sum, h) => sum + Number(h.shares), 0)
+  const totalAmount = (Number(input.amountPerShare) * totalShares).toString()
 
   const [dividend] = await db
     .insert(dividends)
     .values({
-      holdingId,
-      ticker: holding.ticker,
+      accountId,
+      ticker: input.ticker,
       amountPerShare: input.amountPerShare,
       totalAmount,
       exDate: input.exDate,
@@ -75,18 +78,6 @@ export async function createDividend(
   return dividend
 }
 
-export async function getDividendsForHolding(
-  db: DbInstance,
-  holdingId: string,
-  userId: string,
-): Promise<Dividend[]> {
-  await getHoldingById(db, holdingId, userId)
-  return db
-    .select(dividendColumns)
-    .from(dividends)
-    .where(eq(dividends.holdingId, holdingId))
-}
-
 export async function getDividendsForAccount(
   db: DbInstance,
   accountId: string,
@@ -96,8 +87,7 @@ export async function getDividendsForAccount(
   return db
     .select(dividendColumns)
     .from(dividends)
-    .innerJoin(holdings, eq(dividends.holdingId, holdings.id))
-    .where(eq(holdings.accountId, accountId))
+    .where(eq(dividends.accountId, accountId))
 }
 
 export async function getDividendsForPortfolio(
@@ -109,8 +99,7 @@ export async function getDividendsForPortfolio(
   return db
     .select(dividendColumns)
     .from(dividends)
-    .innerJoin(holdings, eq(dividends.holdingId, holdings.id))
-    .innerJoin(accounts, eq(holdings.accountId, accounts.id))
+    .innerJoin(accounts, eq(dividends.accountId, accounts.id))
     .where(eq(accounts.portfolioId, portfolioId))
 }
 
@@ -121,8 +110,7 @@ export async function getAllDividendsForUser(
   return db
     .select(dividendColumns)
     .from(dividends)
-    .innerJoin(holdings, eq(dividends.holdingId, holdings.id))
-    .innerJoin(accounts, eq(holdings.accountId, accounts.id))
+    .innerJoin(accounts, eq(dividends.accountId, accounts.id))
     .innerJoin(portfolios, eq(accounts.portfolioId, portfolios.id))
     .where(eq(portfolios.userId, userId))
 }
@@ -133,13 +121,19 @@ export async function updateDividend(
   userId: string,
   input: UpdateDividendInput,
 ): Promise<Dividend> {
-  const { dividend: existing, shares } = await getDividendWithHolding(db, dividendId, userId)
+  const existing = await getDividendWithAccount(db, dividendId, userId)
 
   const newAmountPerShare = input.amountPerShare ?? existing.amountPerShare
-  const totalAmount =
-    input.amountPerShare !== undefined
-      ? (Number(newAmountPerShare) * Number(shares)).toString()
-      : existing.totalAmount
+  let totalAmount = existing.totalAmount
+
+  if (input.amountPerShare !== undefined) {
+    const lotsForTicker = await db
+      .select({ shares: holdings.shares })
+      .from(holdings)
+      .where(and(eq(holdings.accountId, existing.accountId), eq(holdings.ticker, existing.ticker)))
+    const totalShares = lotsForTicker.reduce((sum, h) => sum + Number(h.shares), 0)
+    totalAmount = (Number(newAmountPerShare) * totalShares).toString()
+  }
 
   const [updated] = await db
     .update(dividends)

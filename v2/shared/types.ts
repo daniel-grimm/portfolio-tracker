@@ -36,7 +36,7 @@ export type Holding = {
 
 export type Dividend = {
   id: string
-  holdingId: string
+  accountId: string
   ticker: string
   amountPerShare: string
   totalAmount: string
@@ -140,6 +140,7 @@ export type AggregatedHolding = {
 }
 
 export type CreateDividendInput = {
+  ticker: string
   amountPerShare: string
   exDate: string
   payDate: string

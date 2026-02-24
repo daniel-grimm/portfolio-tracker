@@ -14,7 +14,6 @@ const mockedRequireAuth = vi.mocked(requireAuth)
 vi.mock('../../server/src/services/dividends.js', () => ({
   createDividend: vi.fn(),
   getDividendById: vi.fn(),
-  getDividendsForHolding: vi.fn(),
   getDividendsForAccount: vi.fn(),
   getDividendsForPortfolio: vi.fn(),
   getAllDividendsForUser: vi.fn(),
@@ -23,7 +22,6 @@ vi.mock('../../server/src/services/dividends.js', () => ({
 }))
 import {
   createDividend,
-  getDividendsForHolding,
   getDividendsForAccount,
   getAllDividendsForUser,
   updateDividend,
@@ -34,7 +32,7 @@ import dividendsRouter from '../../server/src/routes/dividends.js'
 
 const mockDividend = {
   id: 'div-1',
-  holdingId: 'hold-1',
+  accountId: 'acct-1',
   ticker: 'AAPL',
   amountPerShare: '0.50',
   totalAmount: '5.00',
@@ -67,12 +65,8 @@ describe('without authentication', () => {
     })
   })
 
-  it('GET /holdings/:id/dividends returns 401', async () => {
-    await request(unauthedApp()).get('/api/v1/holdings/hold-1/dividends').expect(401)
-  })
-
-  it('POST /holdings/:id/dividends returns 401', async () => {
-    await request(unauthedApp()).post('/api/v1/holdings/hold-1/dividends').expect(401)
+  it('POST /accounts/:id/dividends returns 401', async () => {
+    await request(unauthedApp()).post('/api/v1/accounts/acct-1/dividends').expect(401)
   })
 
   it('GET /accounts/:id/dividends returns 401', async () => {
@@ -94,30 +88,7 @@ describe('without authentication', () => {
 
 // ── authenticated routes ──────────────────────────────────────────────────────
 
-describe('GET /api/v1/holdings/:id/dividends', () => {
-  beforeEach(() => {
-    mockedRequireAuth.mockImplementation((_req: Request, _res: Response, next: NextFunction) =>
-      next(),
-    )
-    vi.mocked(getDividendsForHolding).mockResolvedValue([mockDividend])
-  })
-
-  it('returns 200 with data array', async () => {
-    const res = await request(authedApp())
-      .get('/api/v1/holdings/hold-1/dividends')
-      .expect(200)
-    expect(res.body.data).toHaveLength(1)
-    expect(res.body.data[0].id).toBe('div-1')
-  })
-
-  it('returns 404 on NotFoundError', async () => {
-    const { NotFoundError } = await import('../../server/src/lib/errors.js')
-    vi.mocked(getDividendsForHolding).mockRejectedValue(new NotFoundError('not found'))
-    await request(authedApp()).get('/api/v1/holdings/missing/dividends').expect(404)
-  })
-})
-
-describe('POST /api/v1/holdings/:id/dividends', () => {
+describe('POST /api/v1/accounts/:id/dividends', () => {
   beforeEach(() => {
     mockedRequireAuth.mockImplementation((_req: Request, _res: Response, next: NextFunction) =>
       next(),
@@ -127,8 +98,9 @@ describe('POST /api/v1/holdings/:id/dividends', () => {
 
   it('returns 201 with created dividend', async () => {
     const res = await request(authedApp())
-      .post('/api/v1/holdings/hold-1/dividends')
+      .post('/api/v1/accounts/acct-1/dividends')
       .send({
+        ticker: 'AAPL',
         amountPerShare: '0.50',
         exDate: '2024-01-10',
         payDate: '2024-01-15',
@@ -137,17 +109,24 @@ describe('POST /api/v1/holdings/:id/dividends', () => {
     expect(res.body.data.id).toBe('div-1')
   })
 
+  it('returns 400 on missing ticker', async () => {
+    await request(authedApp())
+      .post('/api/v1/accounts/acct-1/dividends')
+      .send({ amountPerShare: '0.50', exDate: '2024-01-10', payDate: '2024-01-15' })
+      .expect(400)
+  })
+
   it('returns 400 on missing amountPerShare', async () => {
     await request(authedApp())
-      .post('/api/v1/holdings/hold-1/dividends')
-      .send({ exDate: '2024-01-10', payDate: '2024-01-15' })
+      .post('/api/v1/accounts/acct-1/dividends')
+      .send({ ticker: 'AAPL', exDate: '2024-01-10', payDate: '2024-01-15' })
       .expect(400)
   })
 
   it('returns 400 on missing payDate', async () => {
     await request(authedApp())
-      .post('/api/v1/holdings/hold-1/dividends')
-      .send({ amountPerShare: '0.50', exDate: '2024-01-10' })
+      .post('/api/v1/accounts/acct-1/dividends')
+      .send({ ticker: 'AAPL', amountPerShare: '0.50', exDate: '2024-01-10' })
       .expect(400)
   })
 
@@ -155,8 +134,8 @@ describe('POST /api/v1/holdings/:id/dividends', () => {
     const { NotFoundError } = await import('../../server/src/lib/errors.js')
     vi.mocked(createDividend).mockRejectedValue(new NotFoundError('not found'))
     await request(authedApp())
-      .post('/api/v1/holdings/missing/dividends')
-      .send({ amountPerShare: '0.50', exDate: '2024-01-10', payDate: '2024-01-15' })
+      .post('/api/v1/accounts/missing/dividends')
+      .send({ ticker: 'AAPL', amountPerShare: '0.50', exDate: '2024-01-10', payDate: '2024-01-15' })
       .expect(404)
   })
 })

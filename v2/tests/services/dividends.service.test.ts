@@ -5,7 +5,6 @@ import { createAccount } from '../../server/src/services/accounts.js'
 import { createHolding } from '../../server/src/services/holdings.js'
 import {
   createDividend,
-  getDividendsForHolding,
   getDividendsForAccount,
   getDividendsForPortfolio,
   getAllDividendsForUser,
@@ -30,6 +29,7 @@ const baseHolding = {
 }
 
 const baseDividend = {
+  ticker: 'AAPL',
   amountPerShare: '0.50',
   exDate: '2024-01-10',
   payDate: '2024-01-15',
@@ -40,17 +40,18 @@ const baseDividend = {
 // ── createDividend ─────────────────────────────────────────────────────────────
 
 describe('createDividend', () => {
-  it('auto-calculates totalAmount = amountPerShare × shares', async () => {
+  it('auto-calculates totalAmount = amountPerShare × total shares for ticker', async () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', {
+      await createHolding(db, a.id, 'user-1', {
         ticker: 'AAPL',
         shares: '10',
         avgCostBasis: '150',
         purchaseDate: '2024-01-01',
       })
-      const d = await createDividend(db, h.id, 'user-1', {
+      const d = await createDividend(db, a.id, 'user-1', {
+        ticker: 'AAPL',
         amountPerShare: '0.50',
         exDate: '2024-01-10',
         payDate: '2024-01-15',
@@ -60,17 +61,30 @@ describe('createDividend', () => {
     })
   })
 
-  it('uses ticker from the holding', async () => {
+  it('sums across multiple lots for the same ticker', async () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', {
-        ticker: 'MSFT',
-        shares: '5',
-        avgCostBasis: '300',
-        purchaseDate: '2024-01-01',
+      await createHolding(db, a.id, 'user-1', { ticker: 'AAPL', shares: '10', avgCostBasis: '150', purchaseDate: '2024-01-01' })
+      await createHolding(db, a.id, 'user-1', { ticker: 'AAPL', shares: '5', avgCostBasis: '160', purchaseDate: '2024-02-01' })
+      const d = await createDividend(db, a.id, 'user-1', {
+        ticker: 'AAPL',
+        amountPerShare: '1.00',
+        exDate: '2024-03-10',
+        payDate: '2024-03-15',
       })
-      const d = await createDividend(db, h.id, 'user-1', {
+      // totalAmount = 1.00 × (10 + 5) = 15.00
+      expect(Number(d.totalAmount)).toBeCloseTo(15.0)
+    })
+  })
+
+  it('stores the ticker from input', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
+      await createHolding(db, a.id, 'user-1', { ticker: 'MSFT', shares: '5', avgCostBasis: '300', purchaseDate: '2024-01-01' })
+      const d = await createDividend(db, a.id, 'user-1', {
+        ticker: 'MSFT',
         amountPerShare: '1.00',
         exDate: '2024-01-10',
         payDate: '2024-01-15',
@@ -83,8 +97,9 @@ describe('createDividend', () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      const d = await createDividend(db, h.id, 'user-1', {
+      await createHolding(db, a.id, 'user-1', baseHolding)
+      const d = await createDividend(db, a.id, 'user-1', {
+        ticker: 'AAPL',
         amountPerShare: '0.25',
         exDate: '2024-03-01',
         payDate: '2024-03-15',
@@ -93,18 +108,17 @@ describe('createDividend', () => {
     })
   })
 
-  it('throws NotFoundError for another user holding', async () => {
+  it('throws NotFoundError for another user account', async () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      await expect(createDividend(db, h.id, 'user-2', baseDividend)).rejects.toBeInstanceOf(
+      await expect(createDividend(db, a.id, 'user-2', baseDividend)).rejects.toBeInstanceOf(
         NotFoundError,
       )
     })
   })
 
-  it('throws NotFoundError for missing holdingId', async () => {
+  it('throws NotFoundError for missing accountId', async () => {
     await withTestTransaction(testDb, async (db) => {
       await expect(
         createDividend(db, MISSING_ID, 'user-1', baseDividend),
@@ -113,68 +127,31 @@ describe('createDividend', () => {
   })
 })
 
-// ── getDividendsForHolding ────────────────────────────────────────────────────
-
-describe('getDividendsForHolding', () => {
-  it('returns dividends when ownership matches', async () => {
-    await withTestTransaction(testDb, async (db) => {
-      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
-      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      const d = await createDividend(db, h.id, 'user-1', baseDividend)
-
-      const result = await getDividendsForHolding(db, h.id, 'user-1')
-      expect(result).toHaveLength(1)
-      expect(result[0].id).toBe(d.id)
-    })
-  })
-
-  it('returns empty array when holding has no dividends', async () => {
-    await withTestTransaction(testDb, async (db) => {
-      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
-      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-
-      const result = await getDividendsForHolding(db, h.id, 'user-1')
-      expect(result).toEqual([])
-    })
-  })
-
-  it('throws NotFoundError for wrong userId', async () => {
-    await withTestTransaction(testDb, async (db) => {
-      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
-      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-
-      await expect(getDividendsForHolding(db, h.id, 'user-2')).rejects.toBeInstanceOf(NotFoundError)
-    })
-  })
-})
-
 // ── getDividendsForAccount ────────────────────────────────────────────────────
 
 describe('getDividendsForAccount', () => {
-  it('returns dividends across all holdings in the account', async () => {
+  it('returns dividends for the account', async () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h1 = await createHolding(db, a.id, 'user-1', {
-        ticker: 'AAPL',
-        shares: '10',
-        avgCostBasis: '150',
-        purchaseDate: '2024-01-01',
-      })
-      const h2 = await createHolding(db, a.id, 'user-1', {
-        ticker: 'MSFT',
-        shares: '5',
-        avgCostBasis: '300',
-        purchaseDate: '2024-01-01',
-      })
-      await createDividend(db, h1.id, 'user-1', baseDividend)
-      await createDividend(db, h2.id, 'user-1', baseDividend)
+      await createHolding(db, a.id, 'user-1', { ticker: 'AAPL', shares: '10', avgCostBasis: '150', purchaseDate: '2024-01-01' })
+      await createHolding(db, a.id, 'user-1', { ticker: 'MSFT', shares: '5', avgCostBasis: '300', purchaseDate: '2024-01-01' })
+      const d1 = await createDividend(db, a.id, 'user-1', { ...baseDividend, ticker: 'AAPL' })
+      const d2 = await createDividend(db, a.id, 'user-1', { ...baseDividend, ticker: 'MSFT' })
 
       const result = await getDividendsForAccount(db, a.id, 'user-1')
       expect(result).toHaveLength(2)
+      expect(result.map((d) => d.id)).toEqual(expect.arrayContaining([d1.id, d2.id]))
+    })
+  })
+
+  it('returns empty array when account has no dividends', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
+
+      const result = await getDividendsForAccount(db, a.id, 'user-1')
+      expect(result).toEqual([])
     })
   })
 
@@ -196,20 +173,10 @@ describe('getDividendsForPortfolio', () => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a1 = await createAccount(db, p.id, 'user-1', { name: 'A1' })
       const a2 = await createAccount(db, p.id, 'user-1', { name: 'A2' })
-      const h1 = await createHolding(db, a1.id, 'user-1', {
-        ticker: 'AAPL',
-        shares: '10',
-        avgCostBasis: '150',
-        purchaseDate: '2024-01-01',
-      })
-      const h2 = await createHolding(db, a2.id, 'user-1', {
-        ticker: 'MSFT',
-        shares: '5',
-        avgCostBasis: '300',
-        purchaseDate: '2024-01-01',
-      })
-      await createDividend(db, h1.id, 'user-1', baseDividend)
-      await createDividend(db, h2.id, 'user-1', baseDividend)
+      await createHolding(db, a1.id, 'user-1', { ticker: 'AAPL', shares: '10', avgCostBasis: '150', purchaseDate: '2024-01-01' })
+      await createHolding(db, a2.id, 'user-1', { ticker: 'MSFT', shares: '5', avgCostBasis: '300', purchaseDate: '2024-01-01' })
+      await createDividend(db, a1.id, 'user-1', { ...baseDividend, ticker: 'AAPL' })
+      await createDividend(db, a2.id, 'user-1', { ...baseDividend, ticker: 'MSFT' })
 
       const result = await getDividendsForPortfolio(db, p.id, 'user-1')
       expect(result).toHaveLength(2)
@@ -233,23 +200,13 @@ describe('getAllDividendsForUser', () => {
     await withTestTransaction(testDb, async (db) => {
       const p1 = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a1 = await createAccount(db, p1.id, 'user-1', { name: 'Acct' })
-      const h1 = await createHolding(db, a1.id, 'user-1', {
-        ticker: 'AAPL',
-        shares: '10',
-        avgCostBasis: '150',
-        purchaseDate: '2024-01-01',
-      })
-      await createDividend(db, h1.id, 'user-1', baseDividend)
+      await createHolding(db, a1.id, 'user-1', { ticker: 'AAPL', shares: '10', avgCostBasis: '150', purchaseDate: '2024-01-01' })
+      await createDividend(db, a1.id, 'user-1', { ...baseDividend, ticker: 'AAPL' })
 
       const p2 = await createPortfolio(db, 'user-2', { name: 'P2' })
       const a2 = await createAccount(db, p2.id, 'user-2', { name: 'Acct' })
-      const h2 = await createHolding(db, a2.id, 'user-2', {
-        ticker: 'MSFT',
-        shares: '5',
-        avgCostBasis: '300',
-        purchaseDate: '2024-01-01',
-      })
-      await createDividend(db, h2.id, 'user-2', baseDividend)
+      await createHolding(db, a2.id, 'user-2', { ticker: 'MSFT', shares: '5', avgCostBasis: '300', purchaseDate: '2024-01-01' })
+      await createDividend(db, a2.id, 'user-2', { ...baseDividend, ticker: 'MSFT' })
 
       const result = await getAllDividendsForUser(db, 'user-1')
       expect(result).toHaveLength(1)
@@ -272,8 +229,8 @@ describe('updateDividend', () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      const d = await createDividend(db, h.id, 'user-1', baseDividend)
+      await createHolding(db, a.id, 'user-1', baseHolding)
+      const d = await createDividend(db, a.id, 'user-1', baseDividend)
 
       const updated = await updateDividend(db, d.id, 'user-1', { status: 'paid' })
       expect(updated.status).toBe('paid')
@@ -284,13 +241,8 @@ describe('updateDividend', () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', {
-        ticker: 'AAPL',
-        shares: '10',
-        avgCostBasis: '150',
-        purchaseDate: '2024-01-01',
-      })
-      const d = await createDividend(db, h.id, 'user-1', { ...baseDividend, amountPerShare: '0.50' })
+      await createHolding(db, a.id, 'user-1', { ticker: 'AAPL', shares: '10', avgCostBasis: '150', purchaseDate: '2024-01-01' })
+      const d = await createDividend(db, a.id, 'user-1', { ...baseDividend, amountPerShare: '0.50' })
       const updated = await updateDividend(db, d.id, 'user-1', { amountPerShare: '1.00' })
       // totalAmount = 1.00 × 10 = 10.00
       expect(Number(updated.totalAmount)).toBeCloseTo(10.0)
@@ -301,8 +253,8 @@ describe('updateDividend', () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      const d = await createDividend(db, h.id, 'user-1', baseDividend)
+      await createHolding(db, a.id, 'user-1', baseHolding)
+      const d = await createDividend(db, a.id, 'user-1', baseDividend)
 
       await expect(updateDividend(db, d.id, 'user-2', { status: 'paid' })).rejects.toBeInstanceOf(
         NotFoundError,
@@ -318,12 +270,12 @@ describe('deleteDividend', () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      const d = await createDividend(db, h.id, 'user-1', baseDividend)
+      await createHolding(db, a.id, 'user-1', baseHolding)
+      const d = await createDividend(db, a.id, 'user-1', baseDividend)
 
       await deleteDividend(db, d.id, 'user-1')
 
-      const remaining = await getDividendsForHolding(db, h.id, 'user-1')
+      const remaining = await getDividendsForAccount(db, a.id, 'user-1')
       expect(remaining).toHaveLength(0)
     })
   })
@@ -332,8 +284,8 @@ describe('deleteDividend', () => {
     await withTestTransaction(testDb, async (db) => {
       const p = await createPortfolio(db, 'user-1', { name: 'P1' })
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
-      const h = await createHolding(db, a.id, 'user-1', baseHolding)
-      const d = await createDividend(db, h.id, 'user-1', baseDividend)
+      await createHolding(db, a.id, 'user-1', baseHolding)
+      const d = await createDividend(db, a.id, 'user-1', baseDividend)
 
       await expect(deleteDividend(db, d.id, 'user-2')).rejects.toBeInstanceOf(NotFoundError)
     })

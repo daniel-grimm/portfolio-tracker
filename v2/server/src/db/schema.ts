@@ -73,9 +73,9 @@ export const dividends = pgTable(
   'dividends',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    holdingId: uuid('holding_id')
+    accountId: uuid('account_id')
       .notNull()
-      .references(() => holdings.id, { onDelete: 'cascade' }),
+      .references(() => accounts.id, { onDelete: 'cascade' }),
     ticker: text('ticker').notNull(),
     amountPerShare: numeric('amount_per_share', { precision: 18, scale: 6 }).notNull(),
     totalAmount: numeric('total_amount', { precision: 18, scale: 6 }).notNull(),
@@ -87,7 +87,7 @@ export const dividends = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index('dividends_holding_id_idx').on(t.holdingId),
+    index('dividends_account_id_idx').on(t.accountId),
     index('dividends_pay_date_idx').on(t.payDate),
   ],
 )
@@ -144,20 +144,20 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
     references: [portfolios.id],
   }),
   holdings: many(holdings),
+  dividends: many(dividends),
 }))
 
-export const holdingsRelations = relations(holdings, ({ one, many }) => ({
+export const holdingsRelations = relations(holdings, ({ one }) => ({
   account: one(accounts, {
     fields: [holdings.accountId],
     references: [accounts.id],
   }),
-  dividends: many(dividends),
 }))
 
 export const dividendsRelations = relations(dividends, ({ one }) => ({
-  holding: one(holdings, {
-    fields: [dividends.holdingId],
-    references: [holdings.id],
+  account: one(accounts, {
+    fields: [dividends.accountId],
+    references: [accounts.id],
   }),
 }))
 

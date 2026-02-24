@@ -44,12 +44,13 @@ export function projectMonthlyIncome(
 
   if (dividends.length < 2) return slots
 
-  // Group by holdingId
+  // Group by accountId + ticker
   const byHolding = new Map<string, Dividend[]>()
   for (const d of dividends) {
-    const group = byHolding.get(d.holdingId) ?? []
+    const key = `${d.accountId}:${d.ticker}`
+    const group = byHolding.get(key) ?? []
     group.push(d)
-    byHolding.set(d.holdingId, group)
+    byHolding.set(key, group)
   }
 
   for (const [, group] of byHolding) {

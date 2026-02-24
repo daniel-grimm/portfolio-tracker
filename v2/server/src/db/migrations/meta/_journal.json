@@ -22,6 +22,13 @@
       "when": 1771903659234,
       "tag": "0002_adorable_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771990000000,
+      "tag": "0003_dividends_account_id",
+      "breakpoints": true
     }
   ]
 }

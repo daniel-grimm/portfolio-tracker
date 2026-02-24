@@ -5,7 +5,6 @@ import { asyncHandler } from '../lib/asyncHandler.js'
 import { NotFoundError } from '../lib/errors.js'
 import {
   createDividend,
-  getDividendsForHolding,
   getDividendsForAccount,
   getAllDividendsForUser,
   updateDividend,
@@ -16,6 +15,7 @@ import { db } from '../db/index.js'
 const router = Router()
 
 const CreateDividendSchema = z.object({
+  ticker: z.string().min(1),
   amountPerShare: z.string().min(1),
   exDate: z.string().min(1),
   payDate: z.string().min(1),
@@ -31,18 +31,8 @@ const UpdateDividendSchema = z.object({
   status: z.enum(['scheduled', 'projected', 'paid']).optional(),
 })
 
-router.get(
-  '/holdings/:holdingId/dividends',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const userId = req.user!.id
-    const result = await getDividendsForHolding(db, req.params['holdingId'] as string, userId)
-    res.json({ data: result })
-  }),
-)
-
 router.post(
-  '/holdings/:holdingId/dividends',
+  '/accounts/:accountId/dividends',
   requireAuth,
   asyncHandler(async (req, res) => {
     const parsed = CreateDividendSchema.safeParse(req.body)
@@ -53,7 +43,7 @@ router.post(
     const userId = req.user!.id
     const dividend = await createDividend(
       db,
-      req.params['holdingId'] as string,
+      req.params['accountId'] as string,
       userId,
       parsed.data,
     )

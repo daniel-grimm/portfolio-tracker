@@ -18,6 +18,7 @@ vi.mock('../../server/src/services/holdings.js', () => ({
   createHolding: vi.fn(),
   updateHolding: vi.fn(),
   deleteHolding: vi.fn(),
+  importHoldings: vi.fn(),
 }))
 import {
   getHoldingsForAccount,
@@ -26,6 +27,7 @@ import {
   createHolding,
   updateHolding,
   deleteHolding,
+  importHoldings,
 } from '../../server/src/services/holdings.js'
 
 import holdingsRouter from '../../server/src/routes/holdings.js'
@@ -93,6 +95,10 @@ describe('without authentication', () => {
 
   it('DELETE /holdings/:id returns 401', async () => {
     await request(unauthedApp()).delete('/api/v1/holdings/hold-1').expect(401)
+  })
+
+  it('POST /accounts/:id/holdings/import returns 401', async () => {
+    await request(unauthedApp()).post('/api/v1/accounts/acct-1/holdings/import').expect(401)
   })
 })
 
@@ -212,6 +218,78 @@ describe('PUT /api/v1/holdings/:id', () => {
     const { NotFoundError } = await import('../../server/src/lib/errors.js')
     vi.mocked(updateHolding).mockRejectedValue(new NotFoundError('not found'))
     await request(authedApp()).put('/api/v1/holdings/missing').send({ shares: '5' }).expect(404)
+  })
+})
+
+describe('GET /api/v1/holdings/import/template', () => {
+  it('returns 200 with CSV content and attachment header', async () => {
+    const res = await request(authedApp())
+      .get('/api/v1/holdings/import/template')
+      .expect(200)
+    expect(res.headers['content-type']).toMatch(/text\/csv/)
+    expect(res.headers['content-disposition']).toMatch(/attachment/)
+    expect(res.text).toContain('Ticker,Shares,AvgCostBasis,PurchaseDate')
+  })
+
+  it('returns 200 without authentication', async () => {
+    const app = makeUnauthenticatedApp()
+    app.use('/api/v1', holdingsRouter)
+    await request(app).get('/api/v1/holdings/import/template').expect(200)
+  })
+})
+
+describe('POST /api/v1/accounts/:id/holdings/import', () => {
+  const validBody = {
+    holdings: [
+      { ticker: 'AAPL', shares: '10', avgCostBasis: '150.00', purchaseDate: '2024-01-15' },
+    ],
+  }
+
+  beforeEach(() => {
+    mockedRequireAuth.mockImplementation((_req: Request, _res: Response, next: NextFunction) =>
+      next(),
+    )
+    vi.mocked(importHoldings).mockResolvedValue({ imported: 1, skipped: 0 })
+  })
+
+  it('returns 200 with import result', async () => {
+    const res = await request(authedApp())
+      .post('/api/v1/accounts/acct-1/holdings/import')
+      .send(validBody)
+      .expect(200)
+    expect(res.body.data).toEqual({ imported: 1, skipped: 0 })
+  })
+
+  it('returns 400 on missing holdings array', async () => {
+    await request(authedApp())
+      .post('/api/v1/accounts/acct-1/holdings/import')
+      .send({})
+      .expect(400)
+  })
+
+  it('returns 400 on invalid holding shape', async () => {
+    await request(authedApp())
+      .post('/api/v1/accounts/acct-1/holdings/import')
+      .send({ holdings: [{ ticker: '', shares: '10', avgCostBasis: '100', purchaseDate: '2024-01-01' }] })
+      .expect(400)
+  })
+
+  it('returns 403 on ForbiddenError', async () => {
+    const { ForbiddenError } = await import('../../server/src/lib/errors.js')
+    vi.mocked(importHoldings).mockRejectedValue(new ForbiddenError('Forbidden'))
+    await request(authedApp())
+      .post('/api/v1/accounts/acct-1/holdings/import')
+      .send(validBody)
+      .expect(403)
+  })
+
+  it('returns 404 on NotFoundError', async () => {
+    const { NotFoundError } = await import('../../server/src/lib/errors.js')
+    vi.mocked(importHoldings).mockRejectedValue(new NotFoundError('not found'))
+    await request(authedApp())
+      .post('/api/v1/accounts/missing/holdings/import')
+      .send(validBody)
+      .expect(404)
   })
 })
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -15,6 +15,7 @@ import {
   updateDividend,
   deleteDividend,
 } from '@/lib/api'
+import { CsvImportModal } from '@/components/CsvImportModal'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -307,6 +308,12 @@ export function AccountDetail() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Holding | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Holding | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+
+  const handleImported = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: ['holdings', id] })
+    void qc.invalidateQueries({ queryKey: ['allHoldings'] })
+  }, [qc, id])
 
   const createMutation = useMutation({
     mutationFn: (values: HoldingFormValues) => createHolding(id!, values),
@@ -435,9 +442,14 @@ export function AccountDetail() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Holdings</h2>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            Add Holding
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+              Import from CSV
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              Add Holding
+            </Button>
+          </div>
         </div>
 
         {holdingsPending ? (
@@ -688,6 +700,15 @@ export function AccountDetail() {
           )}
         </DialogContent>
       </Dialog>
+
+      {id && (
+        <CsvImportModal
+          accountId={id}
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          onImported={handleImported}
+        />
+      )}
 
       <AlertDialog
         open={deleteDivTarget !== null}

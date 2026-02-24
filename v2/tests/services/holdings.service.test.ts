@@ -9,8 +9,9 @@ import {
   createHolding,
   updateHolding,
   deleteHolding,
+  importHoldings,
 } from '../../server/src/services/holdings.js'
-import { NotFoundError } from '../../server/src/lib/errors.js'
+import { NotFoundError, ForbiddenError } from '../../server/src/lib/errors.js'
 
 let testDb: TestDb
 
@@ -212,6 +213,62 @@ describe('deleteHolding', () => {
       const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
       const h = await createHolding(db, a.id, 'user-1', baseHolding)
       await expect(deleteHolding(db, h.id, 'user-2')).rejects.toBeInstanceOf(NotFoundError)
+    })
+  })
+})
+
+describe('importHoldings', () => {
+  const lots = [
+    { ticker: 'AAPL', shares: '10', avgCostBasis: '150.00', purchaseDate: '2024-01-15' },
+    { ticker: 'AAPL', shares: '5', avgCostBasis: '160.00', purchaseDate: '2024-06-01' },
+    { ticker: 'MSFT', shares: '3', avgCostBasis: '300.00', purchaseDate: '2024-03-10' },
+  ]
+
+  it('inserts all lot rows and returns correct count', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
+      const result = await importHoldings(db, a.id, 'user-1', lots)
+      expect(result).toEqual({ imported: 3, skipped: 0 })
+      const inserted = await getHoldingsForAccount(db, a.id, 'user-1')
+      expect(inserted).toHaveLength(3)
+    })
+  })
+
+  it('uppercases tickers on insert', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
+      await importHoldings(db, a.id, 'user-1', [
+        { ticker: 'schd', shares: '10', avgCostBasis: '25', purchaseDate: '2024-01-01' },
+      ])
+      const inserted = await getHoldingsForAccount(db, a.id, 'user-1')
+      expect(inserted[0].ticker).toBe('SCHD')
+    })
+  })
+
+  it('returns { imported: 0, skipped: 0 } for empty array', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
+      const result = await importHoldings(db, a.id, 'user-1', [])
+      expect(result).toEqual({ imported: 0, skipped: 0 })
+    })
+  })
+
+  it('throws NotFoundError for missing accountId', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      await expect(importHoldings(db, MISSING_ID, 'user-1', lots)).rejects.toBeInstanceOf(
+        NotFoundError,
+      )
+    })
+  })
+
+  it('throws ForbiddenError when account belongs to another user', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Acct' })
+      await expect(importHoldings(db, a.id, 'user-2', lots)).rejects.toBeInstanceOf(ForbiddenError)
     })
   })
 })

@@ -157,6 +157,11 @@ export type UpdateDividendInput = {
 
 export type ValueHistoryRange = '1m' | '3m' | '6m' | '1y' | 'all'
 
+export type ImportHoldingsResult = {
+  imported: number
+  skipped: number
+}
+
 export type PortfolioBreakdown = {
   id: string
   name: string

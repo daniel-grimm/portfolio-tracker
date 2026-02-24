@@ -1,9 +1,15 @@
 import { eq, and } from 'drizzle-orm'
 import type { DbInstance } from '../db/index.js'
 import { holdings, accounts, portfolios } from '../db/schema.js'
-import { NotFoundError } from '../lib/errors.js'
+import { NotFoundError, ForbiddenError } from '../lib/errors.js'
 import { getAccountById } from './accounts.js'
-import type { Holding, AggregatedHolding, CreateHoldingInput, UpdateHoldingInput } from 'shared'
+import type {
+  Holding,
+  AggregatedHolding,
+  CreateHoldingInput,
+  UpdateHoldingInput,
+  ImportHoldingsResult,
+} from 'shared'
 
 const holdingColumns = {
   id: holdings.id,
@@ -123,4 +129,41 @@ export async function deleteHolding(
 ): Promise<void> {
   await getHoldingById(db, holdingId, userId)
   await db.delete(holdings).where(eq(holdings.id, holdingId))
+}
+
+export async function importHoldings(
+  db: DbInstance,
+  accountId: string,
+  userId: string,
+  lots: CreateHoldingInput[],
+): Promise<ImportHoldingsResult> {
+  // Check account exists (404 if not)
+  const [account] = await db
+    .select({ id: accounts.id, portfolioId: accounts.portfolioId })
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+
+  if (!account) throw new NotFoundError(`Account ${accountId} not found`)
+
+  // Check ownership (403 if wrong user)
+  const [portfolio] = await db
+    .select({ userId: portfolios.userId })
+    .from(portfolios)
+    .where(eq(portfolios.id, account.portfolioId))
+
+  if (!portfolio || portfolio.userId !== userId) throw new ForbiddenError('Access denied')
+
+  if (lots.length === 0) return { imported: 0, skipped: 0 }
+
+  await db.insert(holdings).values(
+    lots.map((lot) => ({
+      accountId,
+      ticker: lot.ticker.toUpperCase(),
+      shares: lot.shares,
+      avgCostBasis: lot.avgCostBasis,
+      purchaseDate: lot.purchaseDate,
+    })),
+  )
+
+  return { imported: lots.length, skipped: 0 }
 }

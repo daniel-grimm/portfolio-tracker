@@ -18,6 +18,7 @@ import type {
   DashboardSummary,
   CalendarDay,
   MonthlyProjection,
+  ImportHoldingsResult,
 } from 'shared'
 
 const BASE = import.meta.env.VITE_API_BASE_URL as string
@@ -122,6 +123,16 @@ export function updateHolding(id: string, input: UpdateHoldingInput): Promise<Ho
 
 export function deleteHolding(id: string): Promise<null> {
   return request<null>(`/api/v1/holdings/${id}`, { method: 'DELETE' })
+}
+
+export function importHoldings(
+  accountId: string,
+  lots: CreateHoldingInput[],
+): Promise<ImportHoldingsResult> {
+  return request<ImportHoldingsResult>(`/api/v1/accounts/${accountId}/holdings/import`, {
+    method: 'POST',
+    body: JSON.stringify({ holdings: lots }),
+  })
 }
 
 // Dividends

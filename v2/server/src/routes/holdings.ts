@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
 import { asyncHandler } from '../lib/asyncHandler.js'
-import { NotFoundError } from '../lib/errors.js'
+import { NotFoundError, ForbiddenError } from '../lib/errors.js'
 import {
   getHoldingsForAccount,
   getHoldingById,
@@ -10,10 +10,24 @@ import {
   createHolding,
   updateHolding,
   deleteHolding,
+  importHoldings,
 } from '../services/holdings.js'
 import { db } from '../db/index.js'
 
 const router = Router()
+
+const CSV_TEMPLATE = `Ticker,Shares,AvgCostBasis,PurchaseDate\nAAPL,10,150.00,01/14/2026\n`
+
+const ImportHoldingsSchema = z.object({
+  holdings: z.array(
+    z.object({
+      ticker: z.string().min(1),
+      shares: z.string().min(1),
+      avgCostBasis: z.string(),
+      purchaseDate: z.string().min(1),
+    }),
+  ),
+})
 
 const CreateHoldingSchema = z.object({
   ticker: z.string().min(1),
@@ -28,6 +42,32 @@ const UpdateHoldingSchema = z.object({
   avgCostBasis: z.string().optional(),
   purchaseDate: z.string().optional(),
 })
+
+router.get('/holdings/import/template', (_req, res) => {
+  res.setHeader('Content-Type', 'text/csv')
+  res.setHeader('Content-Disposition', 'attachment; filename="vibefolio-holdings-template.csv"')
+  res.send(CSV_TEMPLATE)
+})
+
+router.post(
+  '/accounts/:accountId/holdings/import',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const parsed = ImportHoldingsSchema.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid request body' })
+      return
+    }
+    const userId = req.user!.id
+    const result = await importHoldings(
+      db,
+      req.params['accountId'] as string,
+      userId,
+      parsed.data.holdings,
+    )
+    res.json({ data: result })
+  }),
+)
 
 router.get(
   '/accounts/:accountId/holdings',
@@ -106,6 +146,10 @@ router.use(
     res: import('express').Response,
     next: import('express').NextFunction,
   ) => {
+    if (err instanceof ForbiddenError) {
+      res.status(403).json({ error: err.message })
+      return
+    }
     if (err instanceof NotFoundError) {
       res.status(404).json({ error: err.message })
       return

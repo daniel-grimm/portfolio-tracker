@@ -162,6 +162,12 @@ export type ImportHoldingsResult = {
   skipped: number
 }
 
+export type Theme = 'light' | 'dark'
+
+export type UserPreferences = {
+  theme: Theme
+}
+
 export type PortfolioBreakdown = {
   id: string
   name: string

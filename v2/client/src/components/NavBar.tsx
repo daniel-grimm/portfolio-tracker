@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import { ThemeToggle } from './ThemeToggle'
 
 export function NavBar() {
   const { data: session } = useSession()
@@ -54,7 +55,9 @@ export function NavBar() {
           </Link>
         </nav>
 
-        {user && (
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -71,7 +74,8 @@ export function NavBar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+          )}
+        </div>
       </div>
     </header>
   )

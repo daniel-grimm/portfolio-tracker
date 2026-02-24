@@ -15,6 +15,13 @@
       "when": 1771793605831,
       "tag": "0001_far_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771903659234,
+      "tag": "0002_adorable_patriot",
+      "breakpoints": true
     }
   ]
 }

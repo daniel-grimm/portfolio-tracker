@@ -19,6 +19,8 @@ import type {
   CalendarDay,
   MonthlyProjection,
   ImportHoldingsResult,
+  UserPreferences,
+  Theme,
 } from 'shared'
 
 const BASE = import.meta.env.VITE_API_BASE_URL as string
@@ -189,6 +191,19 @@ export function getDashboardCalendar(year: number, month: number): Promise<Calen
 
 export function getProjectedIncome(): Promise<MonthlyProjection[]> {
   return request<MonthlyProjection[]>('/api/v1/dashboard/projected-income')
+}
+
+// User preferences
+
+export function getUserPreferences(): Promise<UserPreferences> {
+  return request<UserPreferences>('/api/user/preferences')
+}
+
+export function patchUserPreferences(theme: Theme): Promise<UserPreferences> {
+  return request<UserPreferences>('/api/user/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify({ theme }),
+  })
 }
 
 // Portfolio value history

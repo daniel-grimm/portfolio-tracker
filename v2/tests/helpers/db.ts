@@ -4,7 +4,7 @@
 
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle } from 'drizzle-orm/pglite'
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import * as schema from '../../server/src/db/schema.js'
@@ -21,21 +21,24 @@ export type TestDb = {
 }
 
 async function applySchema(client: PGlite): Promise<void> {
-  const sqlPath = join(
-    __dirname,
-    '../../server/src/db/migrations/0000_nostalgic_lady_vermin.sql',
-  )
-  const raw = readFileSync(sqlPath, 'utf-8')
-  const statements = raw
-    .split('--> statement-breakpoint')
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const migrationsDir = join(__dirname, '../../server/src/db/migrations')
+  const files = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
 
-  for (const stmt of statements) {
-    try {
-      await client.exec(stmt)
-    } catch {
-      // PGLite doesn't support every Postgres syntax — skip unsupported ones
+  for (const file of files) {
+    const raw = readFileSync(join(migrationsDir, file), 'utf-8')
+    const statements = raw
+      .split('--> statement-breakpoint')
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    for (const stmt of statements) {
+      try {
+        await client.exec(stmt)
+      } catch {
+        // PGLite doesn't support every Postgres syntax — skip unsupported ones
+      }
     }
   }
 }

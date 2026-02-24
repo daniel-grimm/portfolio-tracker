@@ -7,8 +7,6 @@ import {
   getAccount,
   getHoldings,
   createHolding,
-  updateHolding,
-  deleteHolding,
   getLatestPrice,
   getDividendsForAccount,
   createDividend,
@@ -242,7 +240,13 @@ function DividendForm({
   )
 }
 
-type SortKey = 'ticker' | 'shares' | 'avgCostBasis' | 'purchaseDate'
+type AggregatedRow = {
+  ticker: string
+  totalShares: number
+  weightedAvgCostBasis: number
+}
+
+type SortKey = 'ticker' | 'totalShares' | 'weightedAvgCostBasis'
 
 export function AccountDetail() {
   const { id } = useParams<{ id: string }>()
@@ -292,22 +296,36 @@ export function AccountDetail() {
   const [sortKey, setSortKey] = useState<SortKey>('ticker')
   const [sortAsc, setSortAsc] = useState(true)
 
-  const sortedHoldings = useMemo(() => {
+  const aggregatedHoldings = useMemo<AggregatedRow[]>(() => {
     if (!holdings) return []
-    return [...holdings].sort((a, b) => {
-      const aVal = a[sortKey]
-      const bVal = b[sortKey]
+    const map = new Map<string, { totalShares: number; weightedSum: number }>()
+    for (const h of holdings) {
+      const shares = Number(h.shares)
+      const cost = Number(h.avgCostBasis)
+      const existing = map.get(h.ticker) ?? { totalShares: 0, weightedSum: 0 }
+      map.set(h.ticker, {
+        totalShares: existing.totalShares + shares,
+        weightedSum: existing.weightedSum + shares * cost,
+      })
+    }
+    return Array.from(map.entries()).map(([ticker, { totalShares, weightedSum }]) => ({
+      ticker,
+      totalShares,
+      weightedAvgCostBasis: totalShares > 0 ? weightedSum / totalShares : 0,
+    }))
+  }, [holdings])
+
+  const sortedHoldings = useMemo(() => {
+    return [...aggregatedHoldings].sort((a, b) => {
       const cmp =
-        sortKey === 'shares' || sortKey === 'avgCostBasis'
-          ? Number(aVal) - Number(bVal)
-          : String(aVal).localeCompare(String(bVal))
+        sortKey === 'ticker'
+          ? a.ticker.localeCompare(b.ticker)
+          : a[sortKey] - b[sortKey]
       return sortAsc ? cmp : -cmp
     })
-  }, [holdings, sortKey, sortAsc])
+  }, [aggregatedHoldings, sortKey, sortAsc])
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Holding | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Holding | null>(null)
   const [importOpen, setImportOpen] = useState(false)
 
   const handleImported = useCallback(() => {
@@ -321,25 +339,6 @@ export function AccountDetail() {
       void qc.invalidateQueries({ queryKey: ['holdings', id] })
       void qc.invalidateQueries({ queryKey: ['allHoldings'] })
       setCreateOpen(false)
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ hId, input }: { hId: string; input: HoldingFormValues }) =>
-      updateHolding(hId, input),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['holdings', id] })
-      void qc.invalidateQueries({ queryKey: ['allHoldings'] })
-      setEditTarget(null)
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteHolding,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['holdings', id] })
-      void qc.invalidateQueries({ queryKey: ['allHoldings'] })
-      setDeleteTarget(null)
     },
   })
 
@@ -464,25 +463,22 @@ export function AccountDetail() {
               <TableHeader>
                 <TableRow>
                   <SortHeader col="ticker" label="Ticker" />
-                  <SortHeader col="shares" label="Shares" />
-                  <SortHeader col="avgCostBasis" label="Avg Cost" />
-                  <SortHeader col="purchaseDate" label="Purchase Date" />
+                  <SortHeader col="totalShares" label="Shares" />
+                  <SortHeader col="weightedAvgCostBasis" label="Avg Cost" />
                   <TableHead>Current Price</TableHead>
                   <TableHead>Value</TableHead>
                   <TableHead>Gain/Loss</TableHead>
                   <TableHead>Return %</TableHead>
-                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedHoldings.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell className="font-medium">{h.ticker}</TableCell>
-                    <TableCell>{Number(h.shares).toLocaleString()}</TableCell>
-                    <TableCell>${Number(h.avgCostBasis).toFixed(2)}</TableCell>
-                    <TableCell>{h.purchaseDate}</TableCell>
+                {sortedHoldings.map((row) => (
+                  <TableRow key={row.ticker}>
+                    <TableCell className="font-medium">{row.ticker}</TableCell>
+                    <TableCell>{row.totalShares.toLocaleString()}</TableCell>
+                    <TableCell>${row.weightedAvgCostBasis.toFixed(2)}</TableCell>
                     {(() => {
-                      const priceData = priceByTicker.get(h.ticker)
+                      const priceData = priceByTicker.get(row.ticker)
                       if (!priceData) {
                         return (
                           <>
@@ -493,12 +489,12 @@ export function AccountDetail() {
                           </>
                         )
                       }
-                      const shares = Number(h.shares)
                       const price = Number(priceData.closePrice)
-                      const cost = Number(h.avgCostBasis)
-                      const value = shares * price
-                      const gainLoss = (price - cost) * shares
-                      const returnPct = cost > 0 ? ((price - cost) / cost) * 100 : 0
+                      const value = row.totalShares * price
+                      const gainLoss = (price - row.weightedAvgCostBasis) * row.totalShares
+                      const returnPct = row.weightedAvgCostBasis > 0
+                        ? ((price - row.weightedAvgCostBasis) / row.weightedAvgCostBasis) * 100
+                        : 0
                       const isStale = priceData.date !== today
                       return (
                         <>
@@ -522,16 +518,6 @@ export function AccountDetail() {
                         </>
                       )
                     })()}
-                    <TableCell>
-                      <span className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setEditTarget(h)}>
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(h)}>
-                          Delete
-                        </Button>
-                      </span>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -614,51 +600,6 @@ export function AccountDetail() {
           />
         </DialogContent>
       </Dialog>
-
-      <Dialog open={editTarget !== null} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Holding</DialogTitle>
-          </DialogHeader>
-          {editTarget && (
-            <HoldingForm
-              defaultValues={{
-                ticker: editTarget.ticker,
-                shares: editTarget.shares,
-                avgCostBasis: editTarget.avgCostBasis,
-                purchaseDate: editTarget.purchaseDate,
-              }}
-              onSubmit={(values) => updateMutation.mutate({ hId: editTarget.id, input: values })}
-              isSubmitting={updateMutation.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Holding</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.ticker}</strong>? All associated
-              dividends will also be deleted. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteMutation.isPending}
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-            >
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Dividend dialogs */}
       <Dialog open={createDivOpen} onOpenChange={setCreateDivOpen}>

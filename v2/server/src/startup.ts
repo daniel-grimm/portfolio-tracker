@@ -1,3 +1,9 @@
+import { neon } from '@neondatabase/serverless'
+import { drizzle as drizzleNeonHttp } from 'drizzle-orm/neon-http'
+import { migrate } from 'drizzle-orm/neon-http/migrator'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { env } from './env.js'
 import { db } from './db/index.js'
 import { portfolios } from './db/schema.js'
 import { getTickersNeedingPriceUpdate, savePrices } from './services/prices.js'
@@ -5,7 +11,19 @@ import { computePortfolioSnapshot, savePortfolioValueSnapshot } from './services
 import { fetchFinnhubQuotesBatched } from './lib/finnhub.js'
 import { fetchAlphaVantageQuote } from './lib/alphaVantage.js'
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 export async function startup(): Promise<void> {
+  // ── 0. Run pending migrations ───────────────────────────────────────────────
+  try {
+    const sql = neon(env.DATABASE_URL)
+    const migrationDb = drizzleNeonHttp(sql)
+    await migrate(migrationDb, { migrationsFolder: join(__dirname, 'db/migrations') })
+    console.log('Startup: migrations applied')
+  } catch (err) {
+    console.error('Startup: migration failed (non-fatal):', err)
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   console.log(`Startup: beginning price fetch and portfolio snapshot for ${today}`)
 

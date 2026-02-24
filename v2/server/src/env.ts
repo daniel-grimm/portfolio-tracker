@@ -9,6 +9,7 @@ const envSchema = z.object({
   FINNHUB_FETCH_DELAY_MS: z.coerce.number().int().positive().default(1100),
   ALPHA_VANTAGE_API_KEY: z.string().min(1),
   BASE_URL: z.string().url(),
+  CLIENT_ORIGIN: z.string().url().default('http://localhost:5173'),
   PORT: z.coerce.number().int().positive().default(3000),
 })
 

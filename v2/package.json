@@ -24,6 +24,7 @@
     "@vitest/coverage-v8": "^3.0.5",
     "concurrently": "^9.1.2",
     "pg": "^8.18.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }

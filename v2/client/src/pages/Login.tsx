@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button'
 
 export function Login() {
   function handleGoogleSignIn() {
-    signIn.social({ provider: 'google', callbackURL: '/' })
+    signIn.social({ provider: 'google', callbackURL: `${window.location.origin}/` })
   }
 
   return (

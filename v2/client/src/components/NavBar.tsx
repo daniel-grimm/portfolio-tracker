@@ -36,12 +36,6 @@ export function NavBar() {
             VibeFolio
           </Link>
           <Link
-            to="/portfolios"
-            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
-          >
-            Portfolios
-          </Link>
-          <Link
             to="/dividends"
             className="text-sm text-muted-foreground hover:text-foreground shrink-0"
           >

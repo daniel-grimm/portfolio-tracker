@@ -1,9 +1,61 @@
-import { useQuery } from '@tanstack/react-query'
-import { getAllDividends, getDashboardSummary, getProjectedIncome } from '@/lib/api'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { getAllDividends, getDashboardSummary, getProjectedIncome, createPortfolio } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { IncomeBarChart } from '@/components/charts/IncomeBarChart'
 import { ProjectedIncomeChart } from '@/components/charts/ProjectedIncomeChart'
+
+type PortfolioFormValues = { name: string; description: string }
+
+function PortfolioForm({
+  onSubmit,
+  isSubmitting,
+}: {
+  onSubmit: (values: PortfolioFormValues) => void
+  isSubmitting: boolean
+}) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<PortfolioFormValues>({ defaultValues: { name: '', description: '' } })
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-1">
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          placeholder="e.g. Retirement"
+          {...register('name', { required: 'Name is required' })}
+        />
+        {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="description">Description</Label>
+        <Input id="description" placeholder="Optional" {...register('description')} />
+      </div>
+      <DialogFooter>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving…' : 'Save'}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -25,6 +77,8 @@ function fmt(n: number) {
 
 export function Dashboard() {
   const currentYear = new Date().getFullYear()
+  const qc = useQueryClient()
+  const [createOpen, setCreateOpen] = useState(false)
 
   const { data: summary, isPending: summaryPending } = useQuery({
     queryKey: ['dashboardSummary'],
@@ -39,6 +93,14 @@ export function Dashboard() {
   const { data: allDividends, isPending: dividendsPending } = useQuery({
     queryKey: ['allDividends'],
     queryFn: getAllDividends,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: createPortfolio,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['dashboardSummary'] })
+      setCreateOpen(false)
+    },
   })
 
   const topPayers = allDividends
@@ -84,12 +146,25 @@ export function Dashboard() {
       </section>
 
       {/* Portfolio breakdown */}
-      {!summaryPending && summary?.portfolioBreakdown && summary.portfolioBreakdown.length > 0 && (
-        <section className="space-y-3">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Portfolio Breakdown</h2>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            New Portfolio
+          </Button>
+        </div>
+        {summaryPending ? (
+          <Skeleton className="h-24 rounded-xl" />
+        ) : !summary?.portfolioBreakdown || summary.portfolioBreakdown.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No portfolios yet. Create one to get started.</p>
+        ) : (
           <div className="rounded-md border divide-y">
             {summary.portfolioBreakdown.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-4 py-3">
+              <Link
+                key={p.id}
+                to={`/portfolios/${p.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
+              >
                 <span className="font-medium">{p.name}</span>
                 <div className="flex gap-6 text-sm text-right">
                   <div>
@@ -108,11 +183,11 @@ export function Dashboard() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Income bar chart */}
       <section className="space-y-3">
@@ -154,6 +229,19 @@ export function Dashboard() {
           </div>
         </section>
       )}
+
+      {/* Create portfolio dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Portfolio</DialogTitle>
+          </DialogHeader>
+          <PortfolioForm
+            onSubmit={(values) => createMutation.mutate(values)}
+            isSubmitting={createMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

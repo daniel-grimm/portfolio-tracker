@@ -1,10 +1,9 @@
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthGuard } from './components/AuthGuard'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { NavBar } from './components/NavBar'
 import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
-import { Portfolios } from './pages/Portfolios'
 import { PortfolioDetail } from './pages/PortfolioDetail'
 import { AccountDetail } from './pages/AccountDetail'
 import { Calendar } from './pages/Calendar'
@@ -32,7 +31,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/portfolios" element={<Portfolios />} />
+          <Route path="/portfolios" element={<Navigate to="/" replace />} />
           <Route path="/portfolios/:id" element={<PortfolioDetail />} />
           <Route path="/accounts/:id" element={<AccountDetail />} />
           <Route path="/dividends" element={<Dividends />} />

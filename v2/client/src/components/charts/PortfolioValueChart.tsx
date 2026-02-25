@@ -38,10 +38,14 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
     const parsed = data.map((d) => ({ ...d, parsedDate: parseDate(d.date)! }))
 
     // Scales
-    const xScale = d3
-      .scaleTime()
-      .domain(d3.extent(parsed, (d) => d.parsedDate) as [Date, Date])
-      .range([0, innerWidth])
+    const [xMin, xMax] = d3.extent(parsed, (d) => d.parsedDate) as [Date, Date]
+    // Guard against degenerate domain (both points on same date)
+    const xDomainMin = xMin
+    const xDomainMax =
+      xMin.getTime() === xMax.getTime()
+        ? new Date(xMax.getTime() + 86400000) // add 1 day
+        : xMax
+    const xScale = d3.scaleTime().domain([xDomainMin, xDomainMax]).range([0, innerWidth])
 
     const yMin = Math.min(
       d3.min(parsed, (d) => d.costBasis) ?? 0,
@@ -64,7 +68,7 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
           .tickFormat(d3.timeFormat('%b %d') as (d: Date | d3.NumberValue) => string),
       )
       .select('.domain')
-      .attr('stroke', 'hsl(var(--border))')
+      .attr('stroke', 'var(--border)')
 
     g.append('g')
       .call(
@@ -74,7 +78,7 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
           .tickFormat((d) => `$${d3.format(',.0f')(d as number)}`),
       )
       .select('.domain')
-      .attr('stroke', 'hsl(var(--border))')
+      .attr('stroke', 'var(--border)')
 
     // Cost basis line (dashed, muted)
     const costLine = d3
@@ -84,10 +88,10 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
 
     g.append('path')
       .datum(parsed)
-      .attr('fill', 'none')
-      .attr('stroke', 'hsl(var(--muted-foreground))')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-dasharray', '5,4')
+      .style('fill', 'none')
+      .style('stroke', 'var(--muted-foreground)')
+      .style('stroke-width', '1.5px')
+      .style('stroke-dasharray', '5,4')
       .attr('d', costLine)
 
     // Total value line — solid segments; partial segments get dashed
@@ -96,35 +100,23 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
       .x((d) => xScale(d.parsedDate))
       .y((d) => yScale(d.totalValue))
 
-    // Draw solid line for full data
-    const solidData = parsed.filter((d) => !d.isPartial)
-    if (solidData.length > 1) {
-      g.append('path')
-        .datum(parsed) // draw the full path as base
-        .attr('fill', 'none')
-        .attr('stroke', 'hsl(var(--primary))')
-        .attr('stroke-width', 2)
-        .attr('d', valueLine)
-    } else {
-      g.append('path')
-        .datum(parsed)
-        .attr('fill', 'none')
-        .attr('stroke', 'hsl(var(--primary))')
-        .attr('stroke-width', 2)
-        .attr('d', valueLine)
-    }
+    g.append('path')
+      .datum(parsed)
+      .style('fill', 'none')
+      .style('stroke', 'var(--primary)')
+      .style('stroke-width', '2px')
+      .attr('d', valueLine)
 
-    // Overlay dashed segments for partial data
-    parsed.forEach((d, i) => {
-      if (d.isPartial && i > 0) {
-        g.append('circle')
-          .attr('cx', xScale(d.parsedDate))
-          .attr('cy', yScale(d.totalValue))
-          .attr('r', 3)
-          .attr('fill', 'none')
-          .attr('stroke', 'hsl(var(--muted-foreground))')
-          .attr('stroke-dasharray', '2,2')
-      }
+    // Dots for all data points
+    parsed.forEach((d) => {
+      g.append('circle')
+        .attr('cx', xScale(d.parsedDate))
+        .attr('cy', yScale(d.totalValue))
+        .attr('r', 3)
+        .attr('fill', d.isPartial ? 'none' : 'var(--primary)')
+        .attr('stroke', d.isPartial ? 'var(--muted-foreground)' : 'var(--primary)')
+        .attr('stroke-width', 1.5)
+        .attr('stroke-dasharray', d.isPartial ? '2,2' : 'none')
     })
 
     // Tooltip

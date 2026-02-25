@@ -72,7 +72,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale).tickSize(0))
       .select('.domain')
-      .attr('stroke', 'hsl(var(--border))')
+      .attr('stroke', 'var(--border)')
 
     // Y axis
     g.append('g')
@@ -83,7 +83,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
           .tickFormat((d) => `$${d3.format(',.0f')(d as number)}`),
       )
       .select('.domain')
-      .attr('stroke', 'hsl(var(--border))')
+      .attr('stroke', 'var(--border)')
 
     const tooltip = d3.select(tooltipRef.current!)
 
@@ -101,7 +101,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
       .attr('width', subScale.bandwidth())
       .attr('y', (d) => yScale(d.actual))
       .attr('height', (d) => innerHeight - yScale(d.actual))
-      .attr('fill', 'hsl(var(--primary))')
+      .attr('fill', 'var(--primary)')
       .attr('rx', 2)
       .on('mousemove', (event: MouseEvent, d) => {
         tooltip
@@ -120,7 +120,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
       .attr('width', subScale.bandwidth())
       .attr('y', (d) => yScale(d.projected))
       .attr('height', (d) => innerHeight - yScale(d.projected))
-      .attr('fill', 'hsl(var(--muted-foreground))')
+      .attr('fill', 'var(--muted-foreground)')
       .attr('opacity', 0.5)
       .attr('rx', 2)
       .on('mousemove', (event: MouseEvent, d) => {

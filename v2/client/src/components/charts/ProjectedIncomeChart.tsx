@@ -48,7 +48,7 @@ export function ProjectedIncomeChart({ projections }: { projections: MonthlyProj
       .attr('text-anchor', 'end')
       .attr('font-size', '10px')
 
-    g.select<SVGGElement>('.domain').attr('stroke', 'hsl(var(--border))')
+    g.select<SVGGElement>('.domain').attr('stroke', 'var(--border)')
 
     g.append('g')
       .call(
@@ -58,7 +58,7 @@ export function ProjectedIncomeChart({ projections }: { projections: MonthlyProj
           .tickFormat((d) => `$${d3.format(',.0f')(d as number)}`),
       )
       .select('.domain')
-      .attr('stroke', 'hsl(var(--border))')
+      .attr('stroke', 'var(--border)')
 
     const tooltip = d3.select(tooltipRef.current!)
 
@@ -70,7 +70,7 @@ export function ProjectedIncomeChart({ projections }: { projections: MonthlyProj
       .attr('width', xScale.bandwidth())
       .attr('y', (d) => yScale(d.projectedIncome))
       .attr('height', (d) => innerHeight - yScale(d.projectedIncome))
-      .attr('fill', 'hsl(var(--primary))')
+      .attr('fill', 'var(--primary)')
       .attr('opacity', 0.75)
       .attr('rx', 2)
       .on('mousemove', (event: MouseEvent, d) => {

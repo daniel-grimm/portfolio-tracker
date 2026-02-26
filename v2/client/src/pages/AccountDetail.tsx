@@ -1,17 +1,14 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import type { Holding, Dividend, DividendStatus } from 'shared'
+import type { DividendStatus } from 'shared'
 import {
   getAccount,
   getHoldings,
   createHolding,
   getLatestPrice,
   getDividendsForAccount,
-  createDividend,
-  updateDividend,
-  deleteDividend,
 } from '@/lib/api'
 import { CsvImportModal } from '@/components/CsvImportModal'
 import { Button } from '@/components/ui/button'
@@ -23,25 +20,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -114,129 +94,6 @@ function HoldingForm({
           {errors.purchaseDate && (
             <p className="text-sm text-destructive">{errors.purchaseDate.message}</p>
           )}
-        </div>
-      </div>
-      <DialogFooter>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
-        </Button>
-      </DialogFooter>
-    </form>
-  )
-}
-
-type DividendFormValues = {
-  ticker: string
-  amountPerShare: string
-  exDate: string
-  payDate: string
-  recordDate: string
-  status: DividendStatus
-}
-
-function DividendForm({
-  holdings,
-  defaultValues,
-  onSubmit,
-  isSubmitting,
-}: {
-  holdings: Holding[]
-  defaultValues?: DividendFormValues
-  onSubmit: (values: DividendFormValues) => void
-  isSubmitting: boolean
-}) {
-  const uniqueTickers = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const h of holdings) {
-      map.set(h.ticker, (map.get(h.ticker) ?? 0) + Number(h.shares))
-    }
-    return Array.from(map.entries())
-  }, [holdings])
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<DividendFormValues>({
-    defaultValues: defaultValues ?? {
-      ticker: holdings[0]?.ticker ?? '',
-      amountPerShare: '',
-      exDate: '',
-      payDate: '',
-      recordDate: '',
-      status: 'scheduled',
-    },
-  })
-
-  const statusValue = watch('status')
-  const tickerValue = watch('ticker')
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        {!defaultValues && (
-          <div className="space-y-1 col-span-2">
-            <Label>Ticker</Label>
-            <Select
-              value={tickerValue}
-              onValueChange={(v) => setValue('ticker', v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select ticker" />
-              </SelectTrigger>
-              <SelectContent>
-                {uniqueTickers.map(([ticker, totalShares]) => (
-                  <SelectItem key={ticker} value={ticker}>
-                    {ticker} ({totalShares.toLocaleString()} shares)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        <div className="space-y-1">
-          <Label>Amount / Share</Label>
-          <Input
-            type="number"
-            step="any"
-            placeholder="0.50"
-            {...register('amountPerShare', { required: 'Required' })}
-          />
-          {errors.amountPerShare && (
-            <p className="text-sm text-destructive">{errors.amountPerShare.message}</p>
-          )}
-        </div>
-        <div className="space-y-1">
-          <Label>Status</Label>
-          <Select
-            value={statusValue}
-            onValueChange={(v) => setValue('status', v as DividendStatus)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="projected">Projected</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label>Ex-Dividend Date</Label>
-          <Input type="date" {...register('exDate', { required: 'Required' })} />
-          {errors.exDate && <p className="text-sm text-destructive">{errors.exDate.message}</p>}
-        </div>
-        <div className="space-y-1">
-          <Label>Pay Date</Label>
-          <Input type="date" {...register('payDate', { required: 'Required' })} />
-          {errors.payDate && <p className="text-sm text-destructive">{errors.payDate.message}</p>}
-        </div>
-        <div className="space-y-1 col-span-2">
-          <Label>Record Date (optional)</Label>
-          <Input type="date" {...register('recordDate')} />
         </div>
       </div>
       <DialogFooter>
@@ -385,53 +242,6 @@ export function AccountDetail() {
     },
   })
 
-  // Dividend state
-  const [createDivOpen, setCreateDivOpen] = useState(false)
-  const [editDivTarget, setEditDivTarget] = useState<Dividend | null>(null)
-  const [deleteDivTarget, setDeleteDivTarget] = useState<Dividend | null>(null)
-
-  const createDivMutation = useMutation({
-    mutationFn: (values: DividendFormValues) =>
-      createDividend(id!, {
-        ticker: values.ticker,
-        amountPerShare: values.amountPerShare,
-        exDate: values.exDate,
-        payDate: values.payDate,
-        recordDate: values.recordDate || null,
-        status: values.status,
-      }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['dividends', 'account', id] })
-      void qc.invalidateQueries({ queryKey: ['dividends', 'all'] })
-      setCreateDivOpen(false)
-    },
-  })
-
-  const updateDivMutation = useMutation({
-    mutationFn: ({ dId, input }: { dId: string; input: DividendFormValues }) =>
-      updateDividend(dId, {
-        amountPerShare: input.amountPerShare,
-        exDate: input.exDate,
-        payDate: input.payDate,
-        recordDate: input.recordDate || null,
-        status: input.status,
-      }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['dividends', 'account', id] })
-      void qc.invalidateQueries({ queryKey: ['dividends', 'all'] })
-      setEditDivTarget(null)
-    },
-  })
-
-  const deleteDivMutation = useMutation({
-    mutationFn: deleteDividend,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['dividends', 'account', id] })
-      void qc.invalidateQueries({ queryKey: ['dividends', 'all'] })
-      setDeleteDivTarget(null)
-    },
-  })
-
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((a) => !a)
     else { setSortKey(key); setSortAsc(true) }
@@ -451,7 +261,7 @@ export function AccountDetail() {
   const statusBadgeClass = (status: DividendStatus) => {
     if (status === 'paid') return 'text-green-600 dark:text-green-400'
     if (status === 'scheduled') return 'text-blue-600 dark:text-blue-400'
-    return 'text-muted-foreground'
+    return 'text-amber-500'
   }
 
   if (accountPending) {
@@ -565,19 +375,23 @@ export function AccountDetail() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Dividends</h2>
-          <Button
-            size="sm"
-            onClick={() => setCreateDivOpen(true)}
-            disabled={!holdings || holdings.length === 0}
+          <Link
+            to="/dividends"
+            className="text-sm text-primary hover:underline"
           >
-            Log Dividend
-          </Button>
+            Manage Dividends →
+          </Link>
         </div>
 
         {dividendsPending ? (
           <Skeleton className="h-32 rounded-xl" />
         ) : !dividends || dividends.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No dividends logged yet.</p>
+          <p className="text-muted-foreground text-sm">
+            No dividends logged yet.{' '}
+            <Link to="/dividends" className="text-primary hover:underline">
+              Log one on the Dividends page.
+            </Link>
+          </p>
         ) : (
           <div className="rounded-md border">
             <Table>
@@ -586,10 +400,8 @@ export function AccountDetail() {
                   <TableHead>Ticker</TableHead>
                   <TableHead>Amount/Share</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead>Ex-Date</TableHead>
                   <TableHead>Pay Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -598,21 +410,10 @@ export function AccountDetail() {
                     <TableCell className="font-medium">{d.ticker}</TableCell>
                     <TableCell>${Number(d.amountPerShare).toFixed(4)}</TableCell>
                     <TableCell>${Number(d.totalAmount).toFixed(2)}</TableCell>
-                    <TableCell>{d.exDate}</TableCell>
                     <TableCell>{d.payDate}</TableCell>
                     <TableCell>
                       <span className={`capitalize text-sm font-medium ${statusBadgeClass(d.status)}`}>
                         {d.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setEditDivTarget(d)}>
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleteDivTarget(d)}>
-                          Delete
-                        </Button>
                       </span>
                     </TableCell>
                   </TableRow>
@@ -636,47 +437,6 @@ export function AccountDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Dividend dialogs */}
-      <Dialog open={createDivOpen} onOpenChange={setCreateDivOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Log Dividend</DialogTitle>
-          </DialogHeader>
-          {holdings && holdings.length > 0 && (
-            <DividendForm
-              holdings={holdings}
-              onSubmit={(values) => createDivMutation.mutate(values)}
-              isSubmitting={createDivMutation.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={editDivTarget !== null} onOpenChange={(open) => !open && setEditDivTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Dividend</DialogTitle>
-          </DialogHeader>
-          {editDivTarget && holdings && (
-            <DividendForm
-              holdings={holdings}
-              defaultValues={{
-                ticker: editDivTarget.ticker,
-                amountPerShare: editDivTarget.amountPerShare,
-                exDate: editDivTarget.exDate,
-                payDate: editDivTarget.payDate,
-                recordDate: editDivTarget.recordDate ?? '',
-                status: editDivTarget.status,
-              }}
-              onSubmit={(values) =>
-                updateDivMutation.mutate({ dId: editDivTarget.id, input: values })
-              }
-              isSubmitting={updateDivMutation.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
       {id && (
         <CsvImportModal
           accountId={id}
@@ -685,32 +445,6 @@ export function AccountDetail() {
           onImported={handleImported}
         />
       )}
-
-      <AlertDialog
-        open={deleteDivTarget !== null}
-        onOpenChange={(open) => !open && setDeleteDivTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Dividend</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the{' '}
-              <strong>{deleteDivTarget?.ticker}</strong> dividend (pay date:{' '}
-              {deleteDivTarget?.payDate})? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteDivMutation.isPending}
-              onClick={() => deleteDivTarget && deleteDivMutation.mutate(deleteDivTarget.id)}
-            >
-              {deleteDivMutation.isPending ? 'Deleting…' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

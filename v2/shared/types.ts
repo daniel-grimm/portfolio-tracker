@@ -40,9 +40,9 @@ export type Dividend = {
   ticker: string
   amountPerShare: string
   totalAmount: string
-  exDate: string
   payDate: string
-  recordDate: string | null
+  projectedPerShare: string | null
+  projectedPayout: string | null
   status: DividendStatus
   createdAt: Date
   updatedAt: Date
@@ -142,17 +142,19 @@ export type AggregatedHolding = {
 export type CreateDividendInput = {
   ticker: string
   amountPerShare: string
-  exDate: string
+  totalAmount: string
   payDate: string
-  recordDate?: string | null
+  projectedPerShare?: string | null
+  projectedPayout?: string | null
   status?: DividendStatus
 }
 
 export type UpdateDividendInput = {
   amountPerShare?: string
-  exDate?: string
+  totalAmount?: string
   payDate?: string
-  recordDate?: string | null
+  projectedPerShare?: string | null
+  projectedPayout?: string | null
   status?: DividendStatus
 }
 

@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import type { DbInstance } from '../db/index.js'
-import { dividends, holdings, accounts, portfolios } from '../db/schema.js'
+import { dividends, accounts, portfolios } from '../db/schema.js'
 import { NotFoundError } from '../lib/errors.js'
 import { getAccountById } from './accounts.js'
 import { getPortfolioById } from './portfolios.js'
@@ -12,9 +12,9 @@ const dividendColumns = {
   ticker: dividends.ticker,
   amountPerShare: dividends.amountPerShare,
   totalAmount: dividends.totalAmount,
-  exDate: dividends.exDate,
   payDate: dividends.payDate,
-  recordDate: dividends.recordDate,
+  projectedPerShare: dividends.projectedPerShare,
+  projectedPayout: dividends.projectedPayout,
   status: dividends.status,
   createdAt: dividends.createdAt,
   updatedAt: dividends.updatedAt,
@@ -53,24 +53,16 @@ export async function createDividend(
 ): Promise<Dividend> {
   await getAccountById(db, accountId, userId)
 
-  const lotsForTicker = await db
-    .select({ shares: holdings.shares })
-    .from(holdings)
-    .where(and(eq(holdings.accountId, accountId), eq(holdings.ticker, input.ticker)))
-
-  const totalShares = lotsForTicker.reduce((sum, h) => sum + Number(h.shares), 0)
-  const totalAmount = (Number(input.amountPerShare) * totalShares).toString()
-
   const [dividend] = await db
     .insert(dividends)
     .values({
       accountId,
       ticker: input.ticker,
       amountPerShare: input.amountPerShare,
-      totalAmount,
-      exDate: input.exDate,
+      totalAmount: input.totalAmount,
       payDate: input.payDate,
-      recordDate: input.recordDate ?? null,
+      projectedPerShare: input.projectedPerShare ?? null,
+      projectedPayout: input.projectedPayout ?? null,
       status: input.status ?? 'scheduled',
     })
     .returning(dividendColumns)
@@ -123,26 +115,18 @@ export async function updateDividend(
 ): Promise<Dividend> {
   const existing = await getDividendWithAccount(db, dividendId, userId)
 
-  const newAmountPerShare = input.amountPerShare ?? existing.amountPerShare
-  let totalAmount = existing.totalAmount
-
-  if (input.amountPerShare !== undefined) {
-    const lotsForTicker = await db
-      .select({ shares: holdings.shares })
-      .from(holdings)
-      .where(and(eq(holdings.accountId, existing.accountId), eq(holdings.ticker, existing.ticker)))
-    const totalShares = lotsForTicker.reduce((sum, h) => sum + Number(h.shares), 0)
-    totalAmount = (Number(newAmountPerShare) * totalShares).toString()
-  }
-
   const [updated] = await db
     .update(dividends)
     .set({
-      amountPerShare: newAmountPerShare,
-      totalAmount,
-      exDate: input.exDate ?? existing.exDate,
+      amountPerShare: input.amountPerShare ?? existing.amountPerShare,
+      totalAmount: input.totalAmount ?? existing.totalAmount,
       payDate: input.payDate ?? existing.payDate,
-      recordDate: input.recordDate !== undefined ? input.recordDate : existing.recordDate,
+      projectedPerShare:
+        input.projectedPerShare !== undefined
+          ? input.projectedPerShare
+          : existing.projectedPerShare,
+      projectedPayout:
+        input.projectedPayout !== undefined ? input.projectedPayout : existing.projectedPayout,
       status: input.status ?? existing.status,
       updatedAt: new Date(),
     })

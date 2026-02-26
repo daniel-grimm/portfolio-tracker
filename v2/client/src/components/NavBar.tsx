@@ -41,12 +41,7 @@ export function NavBar() {
           >
             Dividends
           </Link>
-          <Link
-            to="/calendar"
-            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
-          >
-            Calendar
-          </Link>
+
         </nav>
 
         <div className="flex items-center gap-1">

@@ -6,7 +6,6 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { PortfolioDetail } from './pages/PortfolioDetail'
 import { AccountDetail } from './pages/AccountDetail'
-import { Calendar } from './pages/Calendar'
 import { Dividends } from './pages/Dividends'
 
 function AppShell() {
@@ -35,7 +34,7 @@ export default function App() {
           <Route path="/portfolios/:id" element={<PortfolioDetail />} />
           <Route path="/accounts/:id" element={<AccountDetail />} />
           <Route path="/dividends" element={<Dividends />} />
-          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/calendar" element={<Navigate to="/dividends" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

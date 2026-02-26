@@ -36,9 +36,9 @@ const mockDividend = {
   ticker: 'AAPL',
   amountPerShare: '0.50',
   totalAmount: '5.00',
-  exDate: '2024-01-10',
   payDate: '2024-01-15',
-  recordDate: null,
+  projectedPerShare: null,
+  projectedPayout: null,
   status: 'paid' as const,
   createdAt: new Date('2025-01-01'),
   updatedAt: new Date('2025-01-01'),
@@ -102,8 +102,24 @@ describe('POST /api/v1/accounts/:id/dividends', () => {
       .send({
         ticker: 'AAPL',
         amountPerShare: '0.50',
-        exDate: '2024-01-10',
+        totalAmount: '5.00',
         payDate: '2024-01-15',
+      })
+      .expect(201)
+    expect(res.body.data.id).toBe('div-1')
+  })
+
+  it('accepts optional projected fields', async () => {
+    const res = await request(authedApp())
+      .post('/api/v1/accounts/acct-1/dividends')
+      .send({
+        ticker: 'AAPL',
+        amountPerShare: '0.00',
+        totalAmount: '0.00',
+        payDate: '2025-06-15',
+        projectedPerShare: '0.55',
+        projectedPayout: '8.25',
+        status: 'projected',
       })
       .expect(201)
     expect(res.body.data.id).toBe('div-1')
@@ -112,21 +128,28 @@ describe('POST /api/v1/accounts/:id/dividends', () => {
   it('returns 400 on missing ticker', async () => {
     await request(authedApp())
       .post('/api/v1/accounts/acct-1/dividends')
-      .send({ amountPerShare: '0.50', exDate: '2024-01-10', payDate: '2024-01-15' })
+      .send({ amountPerShare: '0.50', totalAmount: '5.00', payDate: '2024-01-15' })
       .expect(400)
   })
 
   it('returns 400 on missing amountPerShare', async () => {
     await request(authedApp())
       .post('/api/v1/accounts/acct-1/dividends')
-      .send({ ticker: 'AAPL', exDate: '2024-01-10', payDate: '2024-01-15' })
+      .send({ ticker: 'AAPL', totalAmount: '5.00', payDate: '2024-01-15' })
+      .expect(400)
+  })
+
+  it('returns 400 on missing totalAmount', async () => {
+    await request(authedApp())
+      .post('/api/v1/accounts/acct-1/dividends')
+      .send({ ticker: 'AAPL', amountPerShare: '0.50', payDate: '2024-01-15' })
       .expect(400)
   })
 
   it('returns 400 on missing payDate', async () => {
     await request(authedApp())
       .post('/api/v1/accounts/acct-1/dividends')
-      .send({ ticker: 'AAPL', amountPerShare: '0.50', exDate: '2024-01-10' })
+      .send({ ticker: 'AAPL', amountPerShare: '0.50', totalAmount: '5.00' })
       .expect(400)
   })
 
@@ -135,7 +158,7 @@ describe('POST /api/v1/accounts/:id/dividends', () => {
     vi.mocked(createDividend).mockRejectedValue(new NotFoundError('not found'))
     await request(authedApp())
       .post('/api/v1/accounts/missing/dividends')
-      .send({ ticker: 'AAPL', amountPerShare: '0.50', exDate: '2024-01-10', payDate: '2024-01-15' })
+      .send({ ticker: 'AAPL', amountPerShare: '0.50', totalAmount: '5.00', payDate: '2024-01-15' })
       .expect(404)
   })
 })
@@ -192,6 +215,19 @@ describe('PUT /api/v1/dividends/:id', () => {
       .send({ status: 'paid' })
       .expect(200)
     expect(res.body.data.status).toBe('paid')
+  })
+
+  it('accepts projected fields on update', async () => {
+    vi.mocked(updateDividend).mockResolvedValue({
+      ...mockDividend,
+      projectedPerShare: '0.60',
+      projectedPayout: '9.00',
+    })
+    const res = await request(authedApp())
+      .put('/api/v1/dividends/div-1')
+      .send({ projectedPerShare: '0.60', projectedPayout: '9.00' })
+      .expect(200)
+    expect(res.body.data.projectedPayout).toBe('9.00')
   })
 
   it('returns 404 on NotFoundError', async () => {

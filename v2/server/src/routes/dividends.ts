@@ -17,17 +17,19 @@ const router = Router()
 const CreateDividendSchema = z.object({
   ticker: z.string().min(1),
   amountPerShare: z.string().min(1),
-  exDate: z.string().min(1),
+  totalAmount: z.string().min(1),
   payDate: z.string().min(1),
-  recordDate: z.string().nullable().optional(),
+  projectedPerShare: z.string().nullable().optional(),
+  projectedPayout: z.string().nullable().optional(),
   status: z.enum(['scheduled', 'projected', 'paid']).optional(),
 })
 
 const UpdateDividendSchema = z.object({
   amountPerShare: z.string().optional(),
-  exDate: z.string().optional(),
+  totalAmount: z.string().optional(),
   payDate: z.string().optional(),
-  recordDate: z.string().nullable().optional(),
+  projectedPerShare: z.string().nullable().optional(),
+  projectedPayout: z.string().nullable().optional(),
   status: z.enum(['scheduled', 'projected', 'paid']).optional(),
 })
 

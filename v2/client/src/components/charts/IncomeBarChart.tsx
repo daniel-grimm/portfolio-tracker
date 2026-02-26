@@ -5,13 +5,12 @@ import type { Dividend } from 'shared'
 const MARGIN = { top: 20, right: 20, bottom: 50, left: 70 }
 const HEIGHT = 240
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export type ChartMonth = { year: number; month: number; label: string }
 
-type MonthData = { month: number; actual: number; projected: number }
+type MonthData = { label: string; actual: number; projected: number }
 
-function buildMonthData(dividends: Dividend[], year: number): MonthData[] {
-  return MONTHS.map((_, idx) => {
-    const month = idx + 1
+function buildMonthData(dividends: Dividend[], months: ChartMonth[]): MonthData[] {
+  return months.map(({ year, month, label }) => {
     const paid = dividends
       .filter((d) => {
         const [y, m] = d.payDate.split('-').map(Number)
@@ -24,18 +23,18 @@ function buildMonthData(dividends: Dividend[], year: number): MonthData[] {
         return y === year && m === month && (d.status === 'scheduled' || d.status === 'projected')
       })
       .reduce((s, d) => s + parseFloat(d.totalAmount), 0)
-    return { month, actual: paid, projected: proj }
+    return { label, actual: paid, projected: proj }
   })
 }
 
-export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; year: number }) {
+export function IncomeBarChart({ dividends, months }: { dividends: Dividend[]; months: ChartMonth[] }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!svgRef.current) return
 
-    const data = buildMonthData(dividends, year)
+    const data = buildMonthData(dividends, months)
     const container = svgRef.current.parentElement
     const width = container?.clientWidth ?? 700
     const innerWidth = width - MARGIN.left - MARGIN.right
@@ -49,7 +48,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
 
     const xScale = d3
       .scaleBand()
-      .domain(MONTHS)
+      .domain(data.map((d) => d.label))
       .range([0, innerWidth])
       .paddingInner(0.25)
       .paddingOuter(0.1)
@@ -93,7 +92,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
       .data(data)
       .join('g')
       .attr('class', 'month-group')
-      .attr('transform', (d) => `translate(${xScale(MONTHS[d.month - 1]) ?? 0},0)`)
+      .attr('transform', (d) => `translate(${xScale(d.label) ?? 0},0)`)
 
     groups
       .append('rect')
@@ -109,7 +108,7 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
           .style('left', `${(event.offsetX ?? 0) + 12}px`)
           .style('top', `${(event.offsetY ?? 0) - 40}px`)
           .html(
-            `<div style="font-size:11px;font-weight:600">${MONTHS[d.month - 1]} Paid</div><div style="font-size:11px">$${d.actual.toFixed(2)}</div>`,
+            `<div style="font-size:11px;font-weight:600">${d.label} Paid</div><div style="font-size:11px">$${d.actual.toFixed(2)}</div>`,
           )
       })
       .on('mouseleave', () => tooltip.style('opacity', '0'))
@@ -129,11 +128,11 @@ export function IncomeBarChart({ dividends, year }: { dividends: Dividend[]; yea
           .style('left', `${(event.offsetX ?? 0) + 12}px`)
           .style('top', `${(event.offsetY ?? 0) - 40}px`)
           .html(
-            `<div style="font-size:11px;font-weight:600">${MONTHS[d.month - 1]} Scheduled</div><div style="font-size:11px">$${d.projected.toFixed(2)}</div>`,
+            `<div style="font-size:11px;font-weight:600">${d.label} Scheduled</div><div style="font-size:11px">$${d.projected.toFixed(2)}</div>`,
           )
       })
       .on('mouseleave', () => tooltip.style('opacity', '0'))
-  }, [dividends, year])
+  }, [dividends, months])
 
   return (
     <div className="relative overflow-hidden">

@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { IncomeBarChart } from '@/components/charts/IncomeBarChart'
+import { IncomeBarChart, type ChartMonth } from '@/components/charts/IncomeBarChart'
 import { ProjectedIncomeChart } from '@/components/charts/ProjectedIncomeChart'
 
 type PortfolioFormValues = { name: string; description: string }
@@ -75,8 +75,24 @@ function fmt(n: number) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function buildTtmMonths(): ChartMonth[] {
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // 1-12
+  return Array.from({ length: 12 }, (_, i) => {
+    const offset = i - 11 // -11 to 0
+    let month = currentMonth + offset
+    let year = currentYear
+    if (month <= 0) { month += 12; year -= 1 }
+    return { year, month, label: MONTH_LABELS[month - 1] }
+  })
+}
+
 export function Dashboard() {
   const currentYear = new Date().getFullYear()
+  const ttmMonths = buildTtmMonths()
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -191,13 +207,13 @@ export function Dashboard() {
 
       {/* Income bar chart */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Income — {currentYear}</h2>
+        <h2 className="text-lg font-semibold">Income — Trailing 12 Months</h2>
         {dividendsPending ? (
           <Skeleton className="rounded-xl" style={{ height: 240 }} />
         ) : !allDividends || allDividends.length === 0 ? (
           <p className="text-muted-foreground text-sm">No dividend data yet.</p>
         ) : (
-          <IncomeBarChart dividends={allDividends} year={currentYear} />
+          <IncomeBarChart dividends={allDividends} months={ttmMonths} />
         )}
       </section>
 

@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import type { Dividend, DividendStatus } from 'shared'
+import type { Dividend, DividendWithAccount, DividendStatus } from 'shared'
+import { Pencil, Trash2 } from 'lucide-react'
 import {
   getAllDividends,
   getPortfolios,
@@ -420,8 +421,8 @@ export function Dividends() {
   })
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Dividend | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Dividend | null>(null)
+  const [editTarget, setEditTarget] = useState<DividendWithAccount | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<DividendWithAccount | null>(null)
 
   function invalidateAll() {
     void qc.invalidateQueries({ queryKey: ['dividends', 'all'] })
@@ -557,6 +558,7 @@ export function Dividends() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Ticker</TableHead>
+                  <TableHead>Account</TableHead>
                   <TableHead>Amount/Share</TableHead>
                   <TableHead>Total Payout</TableHead>
                   <TableHead>Pay Date</TableHead>
@@ -568,6 +570,7 @@ export function Dividends() {
                 {dividends.map((d) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-medium">{d.ticker}</TableCell>
+                    <TableCell className="text-muted-foreground">{d.accountName}</TableCell>
                     <TableCell>${Number(d.amountPerShare).toFixed(4)}</TableCell>
                     <TableCell>
                       {d.status === 'projected' && d.projectedPayout ? (
@@ -586,8 +589,12 @@ export function Dividends() {
                     </TableCell>
                     <TableCell>
                       <span className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="sm" onClick={() => setEditTarget(d)}>Edit</Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(d)}>Delete</Button>
+                        <Button variant="ghost" size="icon" onClick={() => setEditTarget(d)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(d)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </span>
                     </TableCell>
                   </TableRow>

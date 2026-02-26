@@ -67,6 +67,8 @@ export type PortfolioValueHistory = {
 
 // ── Composite / computed types ────────────────────────────────────────────────
 
+export type DividendWithAccount = Dividend & { accountName: string }
+
 export type HoldingWithPrice = Holding & {
   currentPrice: string | null
   priceDate: string | null

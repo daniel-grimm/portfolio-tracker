@@ -10,6 +10,7 @@ import type {
   CreateHoldingInput,
   UpdateHoldingInput,
   Dividend,
+  DividendWithAccount,
   CreateDividendInput,
   UpdateDividendInput,
   PriceHistory,
@@ -143,8 +144,8 @@ export function getDividendsForAccount(accountId: string): Promise<Dividend[]> {
   return request<Dividend[]>(`/api/v1/accounts/${accountId}/dividends`)
 }
 
-export function getAllDividends(): Promise<Dividend[]> {
-  return request<Dividend[]>('/api/v1/dividends')
+export function getAllDividends(): Promise<DividendWithAccount[]> {
+  return request<DividendWithAccount[]>('/api/v1/dividends')
 }
 
 export function createDividend(accountId: string, input: CreateDividendInput): Promise<Dividend> {

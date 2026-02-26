@@ -4,7 +4,7 @@ import { dividends, accounts, portfolios } from '../db/schema.js'
 import { NotFoundError } from '../lib/errors.js'
 import { getAccountById } from './accounts.js'
 import { getPortfolioById } from './portfolios.js'
-import type { Dividend, CreateDividendInput, UpdateDividendInput } from 'shared'
+import type { Dividend, DividendWithAccount, CreateDividendInput, UpdateDividendInput } from 'shared'
 
 const dividendColumns = {
   id: dividends.id,
@@ -98,9 +98,9 @@ export async function getDividendsForPortfolio(
 export async function getAllDividendsForUser(
   db: DbInstance,
   userId: string,
-): Promise<Dividend[]> {
+): Promise<DividendWithAccount[]> {
   return db
-    .select(dividendColumns)
+    .select({ ...dividendColumns, accountName: accounts.name })
     .from(dividends)
     .innerJoin(accounts, eq(dividends.accountId, accounts.id))
     .innerJoin(portfolios, eq(accounts.portfolioId, portfolios.id))

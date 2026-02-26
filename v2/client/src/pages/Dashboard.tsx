@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { getAllDividends, getDashboardSummary, getProjectedIncome, createPortfolio } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,19 +56,6 @@ function PortfolioForm({
   )
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-bold">{value}</p>
-        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
-      </CardContent>
-    </Card>
-  )
-}
 
 function fmt(n: number) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -91,7 +77,6 @@ function buildTtmMonths(): ChartMonth[] {
 }
 
 export function Dashboard() {
-  const currentYear = new Date().getFullYear()
   const ttmMonths = buildTtmMonths()
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
@@ -139,27 +124,6 @@ export function Dashboard() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       <h1 className="text-2xl font-bold">Dashboard</h1>
-
-      {/* Stat cards */}
-      <section>
-        {summaryPending ? (
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="YTD Income" value={fmt(summary?.ytdIncome ?? 0)} sub={`${currentYear}`} />
-            <StatCard label="All-Time Income" value={fmt(summary?.allTimeIncome ?? 0)} />
-            <StatCard
-              label="Projected Annual"
-              value={fmt(summary?.projectedAnnual ?? 0)}
-              sub="Last 12 months paid"
-            />
-          </div>
-        )}
-      </section>
 
       {/* Portfolio breakdown */}
       <section className="space-y-3">

@@ -13,9 +13,11 @@ import {
   updateDividend,
   deleteDividend,
   getDashboardCalendar,
+  getDashboardSummary,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -400,6 +402,26 @@ function EditDividendForm({
   )
 }
 
+// ── Stat cards ────────────────────────────────────────────────────────────────
+
+function fmt(n: number) {
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-bold">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function Dividends() {
@@ -409,6 +431,13 @@ export function Dividends() {
 
   const year = parseInt(params.get('year') ?? '') || now.getFullYear()
   const month = parseInt(params.get('month') ?? '') || now.getMonth() + 1
+
+  const currentYear = new Date().getFullYear()
+
+  const { data: summary, isPending: summaryPending } = useQuery({
+    queryKey: ['dashboardSummary'],
+    queryFn: getDashboardSummary,
+  })
 
   const { data: calendarDays, isPending: calendarPending } = useQuery({
     queryKey: ['dashboardCalendar', year, month],
@@ -491,6 +520,19 @@ export function Dividends() {
           Log Dividend
         </Button>
       </div>
+
+      {/* ── Stat cards ── */}
+      {summaryPending ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard label="YTD Income" value={fmt(summary?.ytdIncome ?? 0)} sub={`${currentYear}`} />
+          <StatCard label="All-Time Income" value={fmt(summary?.allTimeIncome ?? 0)} />
+          <StatCard label="Projected Annual" value={fmt(summary?.projectedAnnual ?? 0)} sub="Last 12 months paid" />
+        </div>
+      )}
 
       {/* ── Calendar ── */}
       <section className="space-y-3">

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { getAllDividends, getDashboardSummary, getProjectedIncome, createPortfolio } from '@/lib/api'
+import { getAllDividends, getDashboardSummary, getProjectedIncome, getTTMIncome, createPortfolio } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { IncomeBarChart, type ChartMonth } from '@/components/charts/IncomeBarChart'
+import { IncomeBarChart } from '@/components/charts/IncomeBarChart'
 import { ProjectedIncomeChart } from '@/components/charts/ProjectedIncomeChart'
 
 type PortfolioFormValues = { name: string; description: string }
@@ -61,23 +61,7 @@ function fmt(n: number) {
   return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-function buildTtmMonths(): ChartMonth[] {
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth() + 1 // 1-12
-  return Array.from({ length: 12 }, (_, i) => {
-    const offset = i - 11 // -11 to 0
-    let month = currentMonth + offset
-    let year = currentYear
-    if (month <= 0) { month += 12; year -= 1 }
-    return { year, month, label: MONTH_LABELS[month - 1] }
-  })
-}
-
 export function Dashboard() {
-  const ttmMonths = buildTtmMonths()
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -91,9 +75,14 @@ export function Dashboard() {
     queryFn: getProjectedIncome,
   })
 
-  const { data: allDividends, isPending: dividendsPending } = useQuery({
+  const { data: allDividends } = useQuery({
     queryKey: ['allDividends'],
     queryFn: getAllDividends,
+  })
+
+  const { data: ttmIncome, isPending: ttmPending } = useQuery({
+    queryKey: ['ttm-income'],
+    queryFn: getTTMIncome,
   })
 
   const createMutation = useMutation({
@@ -172,13 +161,11 @@ export function Dashboard() {
       {/* Income bar chart */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Income — Trailing 12 Months</h2>
-        {dividendsPending ? (
-          <Skeleton className="rounded-xl" style={{ height: 240 }} />
-        ) : !allDividends || allDividends.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No dividend data yet.</p>
-        ) : (
-          <IncomeBarChart dividends={allDividends} months={ttmMonths} />
-        )}
+        {ttmPending ? (
+          <Skeleton className="rounded-xl" style={{ height: 260 }} />
+        ) : ttmIncome ? (
+          <IncomeBarChart data={ttmIncome} />
+        ) : null}
       </section>
 
       {/* Projected income chart */}

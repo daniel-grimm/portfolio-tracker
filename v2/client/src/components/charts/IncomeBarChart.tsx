@@ -1,40 +1,41 @@
 import { useRef, useEffect } from 'react'
 import * as d3 from 'd3'
-import type { Dividend } from 'shared'
+import type { TTMIncomeData } from 'shared'
 
 const MARGIN = { top: 20, right: 20, bottom: 50, left: 70 }
-const HEIGHT = 240
+const HEIGHT = 260
 
-export type ChartMonth = { year: number; month: number; label: string }
+const ACCOUNT_COLORS = [
+  '#6366f1', // indigo
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#3b82f6', // blue
+  '#ec4899', // pink
+  '#8b5cf6', // violet
+  '#14b8a6', // teal
+  '#f97316', // orange
+]
 
-type MonthData = { label: string; actual: number; projected: number }
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-function buildMonthData(dividends: Dividend[], months: ChartMonth[]): MonthData[] {
-  return months.map(({ year, month, label }) => {
-    const paid = dividends
-      .filter((d) => {
-        const [y, m] = d.payDate.split('-').map(Number)
-        return y === year && m === month && d.status === 'paid'
-      })
-      .reduce((s, d) => s + parseFloat(d.totalAmount), 0)
-    const proj = dividends
-      .filter((d) => {
-        const [y, m] = d.payDate.split('-').map(Number)
-        return y === year && m === month && (d.status === 'scheduled' || d.status === 'projected')
-      })
-      .reduce((s, d) => s + parseFloat(d.totalAmount), 0)
-    return { label, actual: paid, projected: proj }
-  })
+function monthLabel(year: number, month: number): string {
+  return `${MONTH_SHORT[month - 1]} '${String(year).slice(2)}`
 }
 
-export function IncomeBarChart({ dividends, months }: { dividends: Dividend[]; months: ChartMonth[] }) {
+function formatY(v: number): string {
+  if (v >= 1000) return `$${(v / 1000).toFixed(0)}k`
+  return `$${v.toFixed(0)}`
+}
+
+export function IncomeBarChart({ data }: { data: TTMIncomeData }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!svgRef.current) return
+  const hasData = data.months.some((m) => m.total > 0)
 
-    const data = buildMonthData(dividends, months)
+  useEffect(() => {
+    if (!svgRef.current || !hasData) return
+
     const container = svgRef.current.parentElement
     const width = container?.clientWidth ?? 700
     const innerWidth = width - MARGIN.left - MARGIN.right
@@ -46,110 +47,129 @@ export function IncomeBarChart({ dividends, months }: { dividends: Dividend[]; m
 
     const g = svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`)
 
+    const labels = data.months.map((m) => monthLabel(m.year, m.month))
+
     const xScale = d3
       .scaleBand()
-      .domain(data.map((d) => d.label))
+      .domain(labels)
       .range([0, innerWidth])
       .paddingInner(0.25)
       .paddingOuter(0.1)
 
-    const subScale = d3
-      .scaleBand()
-      .domain(['actual', 'projected'])
-      .range([0, xScale.bandwidth()])
-      .padding(0.05)
-
-    const yMax = d3.max(data, (d) => Math.max(d.actual, d.projected)) ?? 0
+    const yMax = d3.max(data.months, (m) => m.total) ?? 0
     const yScale = d3
       .scaleLinear()
       .domain([0, yMax * 1.15 || 10])
       .nice()
       .range([innerHeight, 0])
 
+    const colorMap = new Map(
+      data.accounts.map((a, i) => [a.accountId, ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]])
+    )
+
     // X axis
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale).tickSize(0))
-      .select('.domain')
-      .attr('stroke', 'var(--border)')
+      .call((axis) => {
+        axis.select('.domain').attr('stroke', 'var(--border)')
+        axis.selectAll('text').attr('fill', 'var(--muted-foreground)').style('font-size', '11px')
+      })
 
     // Y axis
     g.append('g')
-      .call(
-        d3
-          .axisLeft(yScale)
-          .ticks(5)
-          .tickFormat((d) => `$${d3.format(',.0f')(d as number)}`),
-      )
-      .select('.domain')
-      .attr('stroke', 'var(--border)')
+      .call(d3.axisLeft(yScale).ticks(5).tickFormat((v) => formatY(v as number)))
+      .call((axis) => {
+        axis.select('.domain').attr('stroke', 'var(--border)')
+        axis.selectAll('.tick line').attr('stroke', 'var(--border)').attr('x2', innerWidth).attr('opacity', 0.3)
+        axis.selectAll('text').attr('fill', 'var(--muted-foreground)').style('font-size', '11px')
+      })
 
     const tooltip = d3.select(tooltipRef.current!)
 
-    // Bars
-    const groups = g
-      .selectAll('.month-group')
-      .data(data)
-      .join('g')
-      .attr('class', 'month-group')
-      .attr('transform', (d) => `translate(${xScale(d.label) ?? 0},0)`)
+    // Stacked bars — one group per month
+    data.months.forEach((month, mi) => {
+      const label = labels[mi]
+      const x = xScale(label) ?? 0
+      const bw = xScale.bandwidth()
 
-    groups
-      .append('rect')
-      .attr('x', subScale('actual') ?? 0)
-      .attr('width', subScale.bandwidth())
-      .attr('y', (d) => yScale(d.actual))
-      .attr('height', (d) => innerHeight - yScale(d.actual))
-      .attr('fill', 'var(--primary)')
-      .attr('rx', 2)
-      .on('mousemove', (event: MouseEvent, d) => {
-        tooltip
-          .style('opacity', '1')
-          .style('left', `${(event.offsetX ?? 0) + 12}px`)
-          .style('top', `${(event.offsetY ?? 0) - 40}px`)
-          .html(
-            `<div style="font-size:11px;font-weight:600">${d.label} Paid</div><div style="font-size:11px">$${d.actual.toFixed(2)}</div>`,
-          )
-      })
-      .on('mouseleave', () => tooltip.style('opacity', '0'))
+      let y0 = innerHeight // start from bottom
 
-    groups
-      .append('rect')
-      .attr('x', subScale('projected') ?? 0)
-      .attr('width', subScale.bandwidth())
-      .attr('y', (d) => yScale(d.projected))
-      .attr('height', (d) => innerHeight - yScale(d.projected))
-      .attr('fill', 'var(--muted-foreground)')
-      .attr('opacity', 0.5)
-      .attr('rx', 2)
-      .on('mousemove', (event: MouseEvent, d) => {
-        tooltip
-          .style('opacity', '1')
-          .style('left', `${(event.offsetX ?? 0) + 12}px`)
-          .style('top', `${(event.offsetY ?? 0) - 40}px`)
-          .html(
-            `<div style="font-size:11px;font-weight:600">${d.label} Scheduled</div><div style="font-size:11px">$${d.projected.toFixed(2)}</div>`,
-          )
+      month.byAccount.forEach(({ accountId, income }) => {
+        if (income === 0) return
+        const barHeight = innerHeight - yScale(income)
+        const y1 = y0 - barHeight
+
+        g.append('rect')
+          .attr('x', x)
+          .attr('y', y1)
+          .attr('width', bw)
+          .attr('height', barHeight)
+          .attr('fill', colorMap.get(accountId) ?? '#6366f1')
+          .attr('rx', 0)
+          .on('mousemove', (event: MouseEvent) => {
+            const containerRect = svgRef.current!.parentElement!.getBoundingClientRect()
+            const relX = event.clientX - containerRect.left
+            const relY = event.clientY - containerRect.top
+
+            const rows = month.byAccount
+              .filter((a) => a.income > 0)
+              .map(
+                (a) =>
+                  `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11px">
+                    <span style="display:flex;align-items:center;gap:4px">
+                      <span style="width:8px;height:8px;border-radius:2px;background:${colorMap.get(a.accountId) ?? '#6366f1'};display:inline-block;flex-shrink:0"></span>
+                      ${a.accountName}
+                    </span>
+                    <span>$${a.income.toFixed(2)}</span>
+                  </div>`,
+              )
+              .join('')
+
+            tooltip
+              .style('opacity', '1')
+              .style('left', `${relX + 12}px`)
+              .style('top', `${relY - 20}px`)
+              .html(
+                `<div style="font-size:12px;font-weight:600;margin-bottom:6px">${label}</div>
+                 ${rows}
+                 <div style="display:flex;justify-content:space-between;gap:12px;font-size:11px;font-weight:600;margin-top:6px;border-top:1px solid var(--border);padding-top:4px">
+                   <span>Total</span><span>$${month.total.toFixed(2)}</span>
+                 </div>`,
+              )
+          })
+          .on('mouseleave', () => tooltip.style('opacity', '0'))
+
+        y0 = y1
       })
-      .on('mouseleave', () => tooltip.style('opacity', '0'))
-  }, [dividends, months])
+    })
+  }, [data, hasData])
+
+  if (!hasData) {
+    return <p className="text-muted-foreground text-sm">No dividend data yet.</p>
+  }
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-visible">
       <svg ref={svgRef} className="w-full block" />
-      <div className="flex gap-4 mt-1 ml-[70px] text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm inline-block bg-primary" /> Paid
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm inline-block bg-muted-foreground opacity-50" />{' '}
-          Scheduled/Projected
-        </span>
-      </div>
+      {/* Legend */}
+      {data.accounts.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 ml-[70px] text-xs text-muted-foreground">
+          {data.accounts.map((a, i) => (
+            <span key={a.accountId} className="flex items-center gap-1">
+              <span
+                className="w-3 h-3 rounded-sm inline-block flex-shrink-0"
+                style={{ background: ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }}
+              />
+              {a.accountName}
+            </span>
+          ))}
+        </div>
+      )}
       <div
         ref={tooltipRef}
-        className="absolute pointer-events-none opacity-0 bg-popover border rounded-md p-2 shadow-md transition-opacity"
-        style={{ minWidth: '120px' }}
+        className="absolute pointer-events-none opacity-0 bg-popover border rounded-md p-2 shadow-md transition-opacity z-10"
+        style={{ minWidth: '160px' }}
       />
     </div>
   )

@@ -187,3 +187,21 @@ export type DashboardSummary = {
   projectedAnnual: number
   portfolioBreakdown: PortfolioBreakdown[]
 }
+
+export type TTMAccountMonth = {
+  accountId: string
+  accountName: string
+  income: number
+}
+
+export type TTMIncomeMonth = {
+  year: number
+  month: number
+  total: number
+  byAccount: TTMAccountMonth[]
+}
+
+export type TTMIncomeData = {
+  months: TTMIncomeMonth[]
+  accounts: { accountId: string; accountName: string }[]
+}

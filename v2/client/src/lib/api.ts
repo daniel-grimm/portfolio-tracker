@@ -22,6 +22,7 @@ import type {
   ImportHoldingsResult,
   UserPreferences,
   Theme,
+  TTMIncomeData,
 } from 'shared'
 
 const BASE = import.meta.env.VITE_API_BASE_URL as string
@@ -188,6 +189,10 @@ export function getDashboardCalendar(year: number, month: number): Promise<Calen
 
 export function getProjectedIncome(): Promise<MonthlyProjection[]> {
   return request<MonthlyProjection[]>('/api/v1/dashboard/projected-income')
+}
+
+export function getTTMIncome(): Promise<TTMIncomeData> {
+  return request<TTMIncomeData>('/api/v1/dashboard/ttm-income')
 }
 
 // User preferences

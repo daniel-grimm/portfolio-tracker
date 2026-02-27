@@ -26,6 +26,11 @@ vi.mock('../../server/src/services/portfolioValue.js', () => ({
 }))
 import { getPortfolioValueHistory } from '../../server/src/services/portfolioValue.js'
 
+vi.mock('../../server/src/services/dashboard.js', () => ({
+  getTTMIncome: vi.fn(),
+}))
+import { getTTMIncome } from '../../server/src/services/dashboard.js'
+
 import dashboardRouter from '../../server/src/routes/dashboard.js'
 
 const mockDividends = [
@@ -85,6 +90,10 @@ describe('without authentication', () => {
 
   it('GET /dashboard/projected-income returns 401', async () => {
     await request(unauthedApp()).get('/api/v1/dashboard/projected-income').expect(401)
+  })
+
+  it('GET /dashboard/ttm-income returns 401', async () => {
+    await request(unauthedApp()).get('/api/v1/dashboard/ttm-income').expect(401)
   })
 })
 
@@ -179,5 +188,47 @@ describe('GET /api/v1/dashboard/projected-income', () => {
       month: expect.any(Number),
       projectedIncome: expect.any(Number),
     })
+  })
+})
+
+const mockTTMData = {
+  months: Array.from({ length: 12 }, (_, i) => ({
+    year: 2025,
+    month: i + 1,
+    total: i === 0 ? 50 : 0,
+    byAccount: [{ accountId: 'acct-1', accountName: 'Roth', income: i === 0 ? 50 : 0 }],
+  })),
+  accounts: [{ accountId: 'acct-1', accountName: 'Roth' }],
+}
+
+describe('GET /api/v1/dashboard/ttm-income', () => {
+  beforeEach(() => {
+    mockedRequireAuth.mockImplementation(
+      (_req: Request, _res: Response, next: NextFunction) => next(),
+    )
+    vi.mocked(getTTMIncome).mockResolvedValue(mockTTMData)
+  })
+
+  it('returns 200 with TTMIncomeData shape', async () => {
+    const res = await request(authedApp()).get('/api/v1/dashboard/ttm-income').expect(200)
+    expect(res.body.data).toMatchObject({
+      months: expect.any(Array),
+      accounts: expect.any(Array),
+    })
+  })
+
+  it('returns 12 months', async () => {
+    const res = await request(authedApp()).get('/api/v1/dashboard/ttm-income').expect(200)
+    expect(res.body.data.months).toHaveLength(12)
+  })
+
+  it('months are in ascending order', async () => {
+    const res = await request(authedApp()).get('/api/v1/dashboard/ttm-income').expect(200)
+    const months = res.body.data.months as Array<{ year: number; month: number }>
+    for (let i = 1; i < months.length; i++) {
+      const prev = months[i - 1].year * 100 + months[i - 1].month
+      const curr = months[i].year * 100 + months[i].month
+      expect(curr).toBeGreaterThan(prev)
+    }
   })
 })

@@ -11,6 +11,7 @@ import {
   calculateAnnualizedIncome,
 } from '../services/calculations.js'
 import { projectMonthlyIncome, buildDividendCalendar } from '../services/projections.js'
+import { getTTMIncome } from '../services/dashboard.js'
 
 const router = Router()
 
@@ -73,6 +74,16 @@ router.get(
     const dividends = await getAllDividendsForUser(db, userId)
     const projections = projectMonthlyIncome(dividends, 12)
     res.json({ data: projections })
+  }),
+)
+
+router.get(
+  '/dashboard/ttm-income',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = (req as typeof req & { user: { id: string } }).user.id
+    const data = await getTTMIncome(db, userId)
+    res.json({ data })
   }),
 )
 

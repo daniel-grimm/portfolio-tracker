@@ -41,6 +41,12 @@ export function NavBar() {
           >
             Dividends
           </Link>
+          <Link
+            to="/projections"
+            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
+          >
+            Projections
+          </Link>
 
         </nav>
 

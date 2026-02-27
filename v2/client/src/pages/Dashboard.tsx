@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { getAllDividends, getDashboardSummary, getProjectedIncome, getTTMIncome, createPortfolio } from '@/lib/api'
+import { getAllDividends, getDashboardSummary, getTTMIncome, createPortfolio } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { IncomeBarChart } from '@/components/charts/IncomeBarChart'
-import { ProjectedIncomeChart } from '@/components/charts/ProjectedIncomeChart'
 
 type PortfolioFormValues = { name: string; description: string }
 
@@ -68,11 +67,6 @@ export function Dashboard() {
   const { data: summary, isPending: summaryPending } = useQuery({
     queryKey: ['dashboardSummary'],
     queryFn: getDashboardSummary,
-  })
-
-  const { data: projections, isPending: projectionsPending } = useQuery({
-    queryKey: ['projectedIncome'],
-    queryFn: getProjectedIncome,
   })
 
   const { data: allDividends } = useQuery({
@@ -166,20 +160,6 @@ export function Dashboard() {
         ) : ttmIncome ? (
           <IncomeBarChart data={ttmIncome} />
         ) : null}
-      </section>
-
-      {/* Projected income chart */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Projected Income — Next 12 Months</h2>
-        {projectionsPending ? (
-          <Skeleton className="rounded-xl" style={{ height: 200 }} />
-        ) : !projections || projections.every((p) => p.projectedIncome === 0) ? (
-          <p className="text-muted-foreground text-sm">
-            No projection data yet. At least 2 paid dividends per holding are needed.
-          </p>
-        ) : (
-          <ProjectedIncomeChart projections={projections} />
-        )}
       </section>
 
       {/* Top dividend payers */}

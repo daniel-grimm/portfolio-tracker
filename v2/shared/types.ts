@@ -89,7 +89,7 @@ export type MonthlyProjection = {
 
 export type CalendarDay = {
   date: string
-  dividends: Dividend[]
+  dividends: DividendWithAccount[]
 }
 
 export type PriceQuote = {

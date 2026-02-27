@@ -57,14 +57,15 @@ export function makeHolding(overrides: Record<string, unknown> = {}) {
 export function makeDividend(overrides: Record<string, unknown> = {}) {
   return {
     id: nextId(),
-    holdingId: nextId(),
+    accountId: '00000000-0000-0000-0000-000000000001',
     ticker: 'VTI',
     amountPerShare: '0.500000',
     totalAmount: '5.000000',
-    exDate: '2024-01-10',
     payDate: '2024-01-15',
-    recordDate: null,
+    projectedPerShare: null,
+    projectedPayout: null,
     status: 'paid' as const,
+    accountName: 'Test Account',
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import type { Dividend, DividendWithAccount, DividendStatus } from 'shared'
+import type { DividendWithAccount, DividendStatus } from 'shared'
 import { Pencil, Trash2 } from 'lucide-react'
 import {
   getAllDividends,
@@ -68,12 +68,6 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-function statusColor(status: DividendStatus) {
-  if (status === 'paid') return 'bg-green-500'
-  if (status === 'scheduled') return 'bg-primary'
-  return 'bg-amber-500'
-}
-
 function statusBadgeClass(status: DividendStatus) {
   if (status === 'paid') return 'text-green-600 dark:text-green-400'
   if (status === 'scheduled') return 'text-blue-600 dark:text-blue-400'
@@ -82,7 +76,15 @@ function statusBadgeClass(status: DividendStatus) {
 
 // ── Calendar components ───────────────────────────────────────────────────────
 
-function DayCell({ day, dividends }: { day: number | null; dividends: Dividend[] }) {
+function DayCell({
+  day,
+  dividends,
+  monthName,
+}: {
+  day: number | null
+  dividends: DividendWithAccount[]
+  monthName: string
+}) {
   const hasDivs = dividends.length > 0
   const allProjected = hasDivs && dividends.every((d) => d.status === 'projected')
 
@@ -94,26 +96,26 @@ function DayCell({ day, dividends }: { day: number | null; dividends: Dividend[]
       ? 'border-amber-500/30 bg-amber-500/5'
       : 'border-primary/30 bg-primary/5'
 
+  // Sum the day's total: use projectedPayout for projected items, totalAmount otherwise
+  const total = dividends.reduce((sum, d) => {
+    const amt =
+      d.status === 'projected' && d.projectedPayout
+        ? parseFloat(d.projectedPayout)
+        : parseFloat(d.totalAmount)
+    return sum + amt
+  }, 0)
+  const chipLabel = allProjected ? `~$${total.toFixed(2)}` : `$${total.toFixed(2)}`
+  const chipColor = allProjected ? 'bg-amber-500' : 'bg-green-500'
+
   const content = (
     <div className={`min-h-[72px] rounded-md border p-1.5 text-sm flex flex-col gap-1 ${cellBg}`}>
       <span className="text-xs font-medium text-muted-foreground">{day}</span>
-      {dividends.slice(0, 3).map((d) => {
-        const displayAmount =
-          d.status === 'projected' && d.projectedPayout
-            ? `~$${parseFloat(d.projectedPayout).toFixed(2)}`
-            : `$${parseFloat(d.totalAmount).toFixed(2)}`
-        return (
-          <div
-            key={d.id}
-            className={`flex items-center gap-1 rounded px-1 py-0.5 text-[10px] text-white font-medium ${statusColor(d.status)}`}
-          >
-            <span className="truncate">{d.ticker}</span>
-            <span className="ml-auto shrink-0">{displayAmount}</span>
-          </div>
-        )
-      })}
-      {dividends.length > 3 && (
-        <span className="text-[10px] text-muted-foreground">+{dividends.length - 3} more</span>
+      {hasDivs && (
+        <div
+          className={`flex items-center justify-center rounded px-1 py-0.5 text-[10px] text-white font-medium ${chipColor}`}
+        >
+          {chipLabel}
+        </div>
       )}
     </div>
   )
@@ -127,35 +129,43 @@ function DayCell({ day, dividends }: { day: number | null; dividends: Dividend[]
           {content}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72" side="top">
+      <PopoverContent className="w-80" side="top">
         <div className="space-y-2">
           <p className="text-sm font-semibold">
-            {MONTH_NAMES[parseInt(dividends[0].payDate.split('-')[1]) - 1]}{' '}
-            {day} — {dividends.length} dividend{dividends.length > 1 ? 's' : ''}
+            {monthName} {day}
           </p>
-          {dividends.map((d) => {
-            const isProjected = d.status === 'projected'
-            const totalDisplay = isProjected && d.projectedPayout
-              ? `~$${parseFloat(d.projectedPayout).toFixed(2)}`
-              : `$${parseFloat(d.totalAmount).toFixed(2)}`
-            const perShareDisplay = isProjected && d.projectedPerShare
-              ? `~$${parseFloat(d.projectedPerShare).toFixed(4)}/sh`
-              : `$${parseFloat(d.amountPerShare).toFixed(4)}/sh`
-            return (
-              <div key={d.id} className="flex items-center justify-between text-sm border rounded-md px-3 py-2">
-                <div>
-                  <span className="font-medium">{d.ticker}</span>
-                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full text-white ${statusColor(d.status)}`}>
-                    {d.status}
-                  </span>
+          <div className="space-y-1">
+            {dividends.map((d) => {
+              const isProjected = d.status === 'projected'
+              const amount =
+                isProjected && d.projectedPayout
+                  ? `~$${parseFloat(d.projectedPayout).toFixed(2)}`
+                  : `$${parseFloat(d.totalAmount).toFixed(2)}`
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between text-sm py-1.5 border-b last:border-0"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{d.ticker}</span>
+                    <span className="text-xs text-muted-foreground">{d.accountName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        isProjected
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                          : 'bg-green-500/15 text-green-600 dark:text-green-400'
+                      }`}
+                    >
+                      {isProjected ? 'projected' : 'paid'}
+                    </span>
+                    <span className="font-medium tabular-nums">{amount}</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium">{totalDisplay}</p>
-                  <p className="text-xs text-muted-foreground">{perShareDisplay}</p>
-                </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </PopoverContent>
     </Popover>
@@ -452,6 +462,12 @@ export function Dividends() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<DividendWithAccount | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DividendWithAccount | null>(null)
+  const [selectedAccount, setSelectedAccount] = useState<string>('')
+
+  // Reset account filter on month navigation
+  useEffect(() => {
+    setSelectedAccount('')
+  }, [year, month])
 
   function invalidateAll() {
     void qc.invalidateQueries({ queryKey: ['dividends', 'all'] })
@@ -500,10 +516,25 @@ export function Dividends() {
   }
 
   // Calendar grid
-  const dividendsByDay = new Map<number, Dividend[]>()
+  const monthName = MONTH_NAMES[month - 1]
+  const hasEvents = (calendarDays?.length ?? 0) > 0
+
+  // Distinct account names from current month events
+  const accountOptions = useMemo(() => {
+    if (!calendarDays) return []
+    const names = new Set<string>()
+    for (const entry of calendarDays) {
+      for (const d of entry.dividends) names.add(d.accountName)
+    }
+    return Array.from(names).sort()
+  }, [calendarDays])
+
+  const dividendsByDay = new Map<number, DividendWithAccount[]>()
   for (const entry of calendarDays ?? []) {
     const day = parseInt(entry.date.split('-')[2])
-    dividendsByDay.set(day, entry.dividends)
+    const filtered =
+      selectedAccount ? entry.dividends.filter((d) => d.accountName === selectedAccount) : entry.dividends
+    if (filtered.length > 0) dividendsByDay.set(day, filtered)
   }
   const firstDow = new Date(year, month - 1, 1).getDay()
   const daysInMonth = new Date(year, month, 0).getDate()
@@ -542,7 +573,7 @@ export function Dividends() {
               ‹ Prev
             </Button>
             <span className="text-sm font-medium w-36 text-center">
-              {MONTH_NAMES[month - 1]} {year}
+              {monthName} {year}
             </span>
             <Button variant="outline" size="sm" onClick={() => navigateMonth(1)}>
               Next ›
@@ -553,13 +584,26 @@ export function Dividends() {
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Paid
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-primary inline-block" /> Scheduled
-            </span>
-            <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Projected
             </span>
           </div>
         </div>
+
+        {hasEvents && (
+          <div className="flex items-center gap-2">
+            <Select value={selectedAccount || 'all'} onValueChange={(v) => setSelectedAccount(v === 'all' ? '' : v)}>
+              <SelectTrigger className="w-52 h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Accounts</SelectItem>
+                {accountOptions.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="grid grid-cols-7 gap-1">
           {DAY_LABELS.map((label) => (
@@ -578,6 +622,7 @@ export function Dividends() {
                 key={idx}
                 day={day}
                 dividends={day ? (dividendsByDay.get(day) ?? []) : []}
+                monthName={monthName}
               />
             ))}
           </div>

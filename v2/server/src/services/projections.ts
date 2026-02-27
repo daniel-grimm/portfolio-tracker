@@ -1,5 +1,5 @@
 // Pure projection functions — no DB, no async, no Express imports.
-import type { Dividend, MonthlyProjection, CalendarDay } from 'shared'
+import type { Dividend, DividendWithAccount, MonthlyProjection, CalendarDay } from 'shared'
 
 export type Cadence = 'monthly' | 'quarterly' | 'annual' | 'irregular' | 'unknown'
 
@@ -94,7 +94,7 @@ export function projectMonthlyIncome(
 }
 
 export function buildDividendCalendar(
-  dividends: Dividend[],
+  dividends: DividendWithAccount[],
   year: number,
   month: number,
 ): CalendarDay[] {
@@ -105,7 +105,7 @@ export function buildDividendCalendar(
 
   if (inMonth.length === 0) return []
 
-  const byDate = new Map<string, Dividend[]>()
+  const byDate = new Map<string, DividendWithAccount[]>()
   for (const d of inMonth) {
     const group = byDate.get(d.payDate) ?? []
     group.push(d)

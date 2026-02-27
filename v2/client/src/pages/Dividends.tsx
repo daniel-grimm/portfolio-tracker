@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import type { DividendWithAccount, DividendStatus } from 'shared'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import {
   getAllDividends,
   getPortfolios,
@@ -169,6 +169,138 @@ function DayCell({
         </div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+// ── Dividend History Modal ────────────────────────────────────────────────────
+
+type SortCol = 'ticker' | 'payDate'
+type SortDir = 'asc' | 'desc'
+
+function SortIcon({ col, active, dir }: { col: SortCol; active: SortCol; dir: SortDir }) {
+  if (col !== active) return <ChevronsUpDown className="inline ml-1 h-3 w-3 text-muted-foreground/50" />
+  return dir === 'asc'
+    ? <ChevronUp className="inline ml-1 h-3 w-3" />
+    : <ChevronDown className="inline ml-1 h-3 w-3" />
+}
+
+function DividendHistoryModal({
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEdit: (d: DividendWithAccount) => void
+  onDelete: (d: DividendWithAccount) => void
+}) {
+  const [sortCol, setSortCol] = useState<SortCol>('payDate')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  const { data: dividends, isPending } = useQuery({
+    queryKey: ['dividends', 'all'],
+    queryFn: getAllDividends,
+    enabled: open,
+  })
+
+  function toggleSort(col: SortCol) {
+    if (col === sortCol) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
+    }
+  }
+
+  const sorted = useMemo(() => {
+    if (!dividends) return []
+    return [...dividends].sort((a, b) => {
+      const cmp =
+        sortCol === 'ticker'
+          ? a.ticker.localeCompare(b.ticker)
+          : a.payDate.localeCompare(b.payDate)
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [dividends, sortCol, sortDir])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl sm:max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Dividend History</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto min-h-0">
+          {isPending ? (
+            <Skeleton className="h-64 rounded-xl" />
+          ) : !sorted.length ? (
+            <p className="text-muted-foreground text-sm py-4">No dividends logged yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <button
+                      className="flex items-center font-medium hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('ticker')}
+                    >
+                      Ticker
+                      <SortIcon col="ticker" active={sortCol} dir={sortDir} />
+                    </button>
+                  </TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead>
+                    <button
+                      className="flex items-center font-medium hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('payDate')}
+                    >
+                      Pay Date
+                      <SortIcon col="payDate" active={sortCol} dir={sortDir} />
+                    </button>
+                  </TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sorted.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="font-medium">{d.ticker}</TableCell>
+                    <TableCell className="text-muted-foreground">{d.accountName}</TableCell>
+                    <TableCell>{d.payDate}</TableCell>
+                    <TableCell>
+                      {d.status === 'projected' && d.projectedPayout ? (
+                        <span className="text-amber-500 italic">
+                          ~${Number(d.projectedPayout).toFixed(2)}
+                        </span>
+                      ) : (
+                        `$${Number(d.totalAmount).toFixed(2)}`
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`capitalize text-sm font-medium ${statusBadgeClass(d.status)}`}>
+                        {d.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(d)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(d)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -454,12 +586,8 @@ export function Dividends() {
     queryFn: () => getDashboardCalendar(year, month),
   })
 
-  const { data: dividends, isPending: dividendsPending } = useQuery({
-    queryKey: ['dividends', 'all'],
-    queryFn: getAllDividends,
-  })
-
   const [createOpen, setCreateOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<DividendWithAccount | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DividendWithAccount | null>(null)
   const [selectedAccount, setSelectedAccount] = useState<string>('')
@@ -629,70 +757,21 @@ export function Dividends() {
         )}
       </section>
 
-      {/* ── Dividend Log ── */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Dividend Log</h2>
-
-        {dividendsPending ? (
-          <Skeleton className="h-40 rounded-xl" />
-        ) : !dividends || dividends.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No dividends logged yet. Click "Log Dividend" to add one.
-          </p>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticker</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Amount/Share</TableHead>
-                  <TableHead>Total Payout</TableHead>
-                  <TableHead>Pay Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dividends.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-medium">{d.ticker}</TableCell>
-                    <TableCell className="text-muted-foreground">{d.accountName}</TableCell>
-                    <TableCell>${Number(d.amountPerShare).toFixed(4)}</TableCell>
-                    <TableCell>
-                      {d.status === 'projected' && d.projectedPayout ? (
-                        <span className="text-amber-500 italic">
-                          ~${Number(d.projectedPayout).toFixed(2)}
-                        </span>
-                      ) : (
-                        `$${Number(d.totalAmount).toFixed(2)}`
-                      )}
-                    </TableCell>
-                    <TableCell>{d.payDate}</TableCell>
-                    <TableCell>
-                      <span className={`capitalize text-sm font-medium ${statusBadgeClass(d.status)}`}>
-                        {d.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => setEditTarget(d)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(d)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </section>
+      {/* ── Full History ── */}
+      <div>
+        <Button variant="outline" onClick={() => setHistoryOpen(true)}>
+          Full History
+        </Button>
+      </div>
 
       {/* ── Modals ── */}
+      <DividendHistoryModal
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        onEdit={(d) => { setHistoryOpen(false); setEditTarget(d) }}
+        onDelete={(d) => { setHistoryOpen(false); setDeleteTarget(d) }}
+      />
+
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Log Dividend</DialogTitle></DialogHeader>

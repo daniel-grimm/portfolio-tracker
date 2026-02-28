@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import type { Account } from 'shared'
 import { getPortfolio, getAccounts, createAccount, updateAccount, deleteAccount } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ function AccountForm({
   onSubmit: (values: AccountFormValues) => void
   isSubmitting: boolean
 }) {
+  const { t } = useTranslation()
   const {
     register,
     handleSubmit,
@@ -50,21 +52,21 @@ function AccountForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1">
-        <Label htmlFor="acc-name">Name</Label>
+        <Label htmlFor="acc-name">{t('common.name')}</Label>
         <Input
           id="acc-name"
-          placeholder="e.g. Roth IRA"
-          {...register('name', { required: 'Name is required' })}
+          placeholder={t('account.namePlaceholder')}
+          {...register('name', { required: t('common.nameRequired') })}
         />
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
       <div className="space-y-1">
-        <Label htmlFor="acc-description">Description</Label>
-        <Input id="acc-description" placeholder="Optional" {...register('description')} />
+        <Label htmlFor="acc-description">{t('common.description')}</Label>
+        <Input id="acc-description" placeholder={t('common.optional')} {...register('description')} />
       </div>
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? t('common.saving') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>
@@ -72,6 +74,7 @@ function AccountForm({
 }
 
 export function PortfolioDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -130,7 +133,7 @@ export function PortfolioDetail() {
   if (isError || !portfolio) {
     return (
       <div className="p-6">
-        <p className="text-destructive">Portfolio not found.</p>
+        <p className="text-destructive">{t('portfolio.notFound')}</p>
       </div>
     )
   }
@@ -145,15 +148,15 @@ export function PortfolioDetail() {
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Portfolio Value</h2>
+        <h2 className="text-lg font-semibold">{t('portfolio.portfolioValue')}</h2>
         <PortfolioValueChart portfolioId={portfolio.id} />
       </section>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Accounts</h2>
+          <h2 className="text-lg font-semibold">{t('account.accounts')}</h2>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
-            New Account
+            {t('account.newAccount')}
           </Button>
         </div>
 
@@ -165,7 +168,7 @@ export function PortfolioDetail() {
           </div>
         ) : accounts?.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            No accounts yet. Add one to start tracking holdings.
+            {t('account.noAccounts')}
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -183,10 +186,10 @@ export function PortfolioDetail() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Button variant="ghost" size="sm" onClick={() => setEditTarget(a)}>
-                        Edit
+                        {t('common.edit')}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(a)}>
-                        Delete
+                        {t('common.delete')}
                       </Button>
                     </span>
                   </CardTitle>
@@ -206,7 +209,7 @@ export function PortfolioDetail() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Account</DialogTitle>
+            <DialogTitle>{t('account.newAccount')}</DialogTitle>
           </DialogHeader>
           <AccountForm
             onSubmit={(values) => createMutation.mutate(values)}
@@ -219,7 +222,7 @@ export function PortfolioDetail() {
       <Dialog open={editTarget !== null} onOpenChange={(open) => !open && setEditTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Account</DialogTitle>
+            <DialogTitle>{t('account.editAccount')}</DialogTitle>
           </DialogHeader>
           {editTarget && (
             <AccountForm
@@ -241,20 +244,21 @@ export function PortfolioDetail() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Account</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? All holdings
-              and dividends in this account will also be deleted. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('account.deleteAccount')}</AlertDialogTitle>
+            <AlertDialogDescription
+              dangerouslySetInnerHTML={{
+                __html: t('account.deleteConfirm', { name: deleteTarget?.name ?? '' }),
+              }}
+            />
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
             >
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              {deleteMutation.isPending ? t('common.deleting') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

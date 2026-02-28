@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
 import { useQuery } from '@tanstack/react-query'
 import { getValueHistory } from '@/lib/api'
@@ -11,6 +12,7 @@ const HEIGHT = 280
 const RANGES: ValueHistoryRange[] = ['1m', '3m', '6m', '1y', 'all']
 
 export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
+  const { t } = useTranslation()
   const [range, setRange] = useState<ValueHistoryRange>('1m')
   const svgRef = useRef<SVGSVGElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -187,7 +189,7 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
           className="flex items-center justify-center text-muted-foreground text-sm rounded-xl border"
           style={{ height: HEIGHT }}
         >
-          No portfolio value history yet. Data appears after the server runs its startup sequence.
+          {t('portfolio.noValueHistory')}
         </div>
       ) : (
         <div className="relative overflow-hidden">

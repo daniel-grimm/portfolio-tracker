@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
 import type { ProjectionChartMonth } from 'shared'
 import {
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
+  const { t } = useTranslation()
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -128,7 +130,7 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
         .attr('text-anchor', 'middle')
         .style('font-size', '10px')
         .style('fill', DIVIDER_COLOR)
-        .text('Today')
+        .text(t('projections.today'))
     }
 
     // Tooltip
@@ -202,7 +204,7 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
       .attr('y', 0)
       .attr('height', innerHeight)
       .attr('fill', 'transparent')
-  }, [chartData, onMonthClick])
+  }, [chartData, onMonthClick, t])
 
   useEffect(() => {
     render()
@@ -216,11 +218,11 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
       <div className="flex gap-4 mb-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-sm bg-gain" />
-          Actual
+          {t('projections.actual')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-sm bg-primary/60" />
-          Projected
+          {t('calendar.projected')}
         </span>
       </div>
       <svg ref={svgRef} className="w-full" />

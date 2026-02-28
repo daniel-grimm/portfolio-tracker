@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CreateHoldingInput, ImportHoldingsResult } from 'shared'
 import { importHoldings } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -40,16 +41,18 @@ function parseMDY(val: string): string | null {
   return `${match[3]}-${match[1]}-${match[2]}`
 }
 
-function parseCsv(text: string): { lots: ParsedLot[]; error: string | null } {
+type TFunction = (key: string, opts?: Record<string, unknown>) => string
+
+function parseCsv(text: string, t: TFunction): { lots: ParsedLot[]; error: string | null } {
   const lines = text.trim().split(/\r?\n/)
-  if (lines.length < 1) return { lots: [], error: 'File is empty.' }
+  if (lines.length < 1) return { lots: [], error: t('holding.csv.errorEmpty') }
 
   const headers = lines[0].split(',').map((h) => h.trim())
   for (const expected of EXPECTED_HEADERS) {
     if (!headers.includes(expected)) {
       return {
         lots: [],
-        error: `Missing or renamed column: "${expected}". Use the VibeFolio template without modifying the headers.`,
+        error: t('holding.csv.errorMissingColumn', { expected }),
       }
     }
   }
@@ -78,7 +81,7 @@ function parseCsv(text: string): { lots: ParsedLot[]; error: string | null } {
     if (!purchaseDate) {
       return {
         lots: [],
-        error: `Row ${i + 1}: unrecognized date format "${purchaseDateRaw}". Expected MM/DD/YYYY.`,
+        error: t('holding.csv.errorBadDate', { row: i + 1, value: purchaseDateRaw }),
       }
     }
 
@@ -122,6 +125,7 @@ type Props = {
 }
 
 export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Props) {
+  const { t } = useTranslation()
   const [step, setStep] = useState<Step>('upload')
   const [parseError, setParseError] = useState<string | null>(null)
   const [lots, setLots] = useState<ParsedLot[]>([])
@@ -153,10 +157,10 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
     reader.onload = (evt) => {
       const text = evt.target?.result
       if (typeof text !== 'string') {
-        setParseError('Could not read file.')
+        setParseError(t('holding.csv.errorCouldNotRead'))
         return
       }
-      const { lots: parsed, error } = parseCsv(text)
+      const { lots: parsed, error } = parseCsv(text, t)
       if (error) {
         setParseError(error)
         setLots([])
@@ -164,7 +168,7 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
         return
       }
       if (parsed.length === 0) {
-        setParseError('No valid rows found after skipping blanks and headers.')
+        setParseError(t('holding.csv.errorNoValidRows'))
         setLots([])
         setPreview([])
         return
@@ -174,7 +178,7 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
       setPreview(buildPreview(parsed))
       setStep('preview')
     }
-    reader.onerror = () => setParseError('Failed to read file.')
+    reader.onerror = () => setParseError(t('holding.csv.errorFailedRead'))
     reader.readAsText(file)
   }
 
@@ -187,7 +191,7 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
       setStep('result')
       onImported()
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Import failed.')
+      setSubmitError(err instanceof Error ? err.message : t('holding.csv.errorImportFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -197,28 +201,27 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import Holdings from CSV</DialogTitle>
+          <DialogTitle>{t('holding.csv.modalTitle')}</DialogTitle>
         </DialogHeader>
 
         {step === 'upload' && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Download the VibeFolio template, fill it in with your holdings, then upload it here.
-              Delete the sample row before uploading.
+              {t('holding.csv.instructions')}
             </p>
             <a
               href={TEMPLATE_URL}
               download
               className="text-sm font-medium text-primary underline underline-offset-4"
             >
-              Download CSV template
+              {t('holding.csv.downloadTemplate')}
             </a>
             <div className="space-y-1">
               <label
                 htmlFor="csv-file-input"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Upload completed CSV
+                {t('holding.csv.uploadFile')}
               </label>
               <input
                 id="csv-file-input"
@@ -237,19 +240,25 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
 
         {step === 'preview' && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Review the import below ({lots.length} lot{lots.length !== 1 ? 's' : ''} across{' '}
-              {preview.length} ticker{preview.length !== 1 ? 's' : ''}). Click{' '}
-              <strong>Confirm Import</strong> to proceed.
-            </p>
+            <p
+              className="text-sm text-muted-foreground"
+              dangerouslySetInnerHTML={{
+                __html: t('holding.csv.previewHeading', {
+                  lots: lots.length,
+                  lotsPlural: lots.length !== 1 ? 's' : '',
+                  tickers: preview.length,
+                  tickersPlural: preview.length !== 1 ? 's' : '',
+                }),
+              }}
+            />
             <div className="rounded-md border text-sm max-h-72 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ticker</TableHead>
-                    <TableHead>Total Shares</TableHead>
-                    <TableHead>Wtd Avg Cost</TableHead>
-                    <TableHead>Lots</TableHead>
+                    <TableHead>{t('holding.csv.columnTicker')}</TableHead>
+                    <TableHead>{t('holding.csv.columnTotalShares')}</TableHead>
+                    <TableHead>{t('holding.csv.columnWtdAvgCost')}</TableHead>
+                    <TableHead>{t('holding.csv.columnLots')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -265,16 +274,15 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
               </Table>
             </div>
             <p className="text-xs text-yellow-600 dark:text-yellow-400">
-              Warning: Re-uploading the same file will create duplicate holdings. Make sure you have
-              not already imported this file.
+              {t('holding.csv.duplicateWarning')}
             </p>
             {submitError && <p className="text-sm text-destructive">{submitError}</p>}
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => { reset() }}>
-                Back
+                {t('common.back')}
               </Button>
               <Button onClick={() => void handleConfirm()} disabled={isSubmitting}>
-                {isSubmitting ? 'Importing…' : 'Confirm Import'}
+                {isSubmitting ? t('holding.csv.importing') : t('holding.csv.confirmImport')}
               </Button>
             </DialogFooter>
           </div>
@@ -282,12 +290,17 @@ export function CsvImportModal({ accountId, open, onOpenChange, onImported }: Pr
 
         {step === 'result' && result && (
           <div className="space-y-4">
-            <p className="text-sm">
-              Successfully imported <strong>{result.imported}</strong> holding
-              {result.imported !== 1 ? 's' : ''}.
-            </p>
+            <p
+              className="text-sm"
+              dangerouslySetInnerHTML={{
+                __html: t('holding.csv.success', {
+                  count: result.imported,
+                  plural: result.imported !== 1 ? 's' : '',
+                }),
+              }}
+            />
             <DialogFooter>
-              <Button onClick={() => handleClose(false)}>Done</Button>
+              <Button onClick={() => handleClose(false)}>{t('common.done')}</Button>
             </DialogFooter>
           </div>
         )}

@@ -273,6 +273,52 @@ vi.mock('../../server/src/services/portfolios')
 
 ---
 
+## Internationalisation (i18n)
+
+All user-visible strings are managed via `react-i18next`. The app is English-only for now; i18n is in place for future-proofing and string organisation.
+
+### Setup
+
+- Package: `i18next` + `react-i18next` (client workspace only)
+- Init file: `client/src/i18n/index.ts` — imported once in `main.tsx` before the app renders
+- Strings: `client/src/i18n/locales/en.json` — single `translation` namespace, organised by feature
+
+### Usage
+
+```typescript
+import { useTranslation } from 'react-i18next'
+
+const { t } = useTranslation()        // no namespace argument
+t('common.save')                       // → "Save"
+t('portfolio.deleteConfirm', { name }) // interpolation
+t('projections.excludedHoldings', { count }) // plurals via _one / _other keys
+t('calendar.months', { returnObjects: true }) as string[] // array values
+```
+
+### Namespace structure in `en.json`
+
+| Key | Contents |
+|---|---|
+| `common` | Save, Cancel, Delete, Edit, Loading, Required, etc. |
+| `auth` | App name, tagline, sign-in, sign-out |
+| `portfolio` | Portfolio CRUD labels, value/cost/gain labels |
+| `account` | Account CRUD labels |
+| `holding` | Holding CRUD labels, table headers, CSV import strings |
+| `dividend` | Dividend CRUD labels, status values, form fields |
+| `calendar` | Calendar UI labels, month/day arrays, legend |
+| `dashboard` | Dashboard section headings, chart labels |
+| `projections` | Projections page labels, table headers, stat cards |
+| `errors` | Generic error messages |
+| `nav` | Navigation link labels |
+
+### Rules
+
+- **Never hardcode a user-visible string in a component.** Always use `t()`.
+- Class components (e.g. `ErrorBoundary`) use `import i18n from '@/i18n'` and `i18n.t(...)` since hooks are not available.
+- Do not add a second language until explicitly requested — just add keys to `en.json` and use them via `t()`.
+
+---
+
 ## Definition of Done
 
 **All tasks:**

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { getProjections } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +50,7 @@ function fmtPct(v: number): string {
 // ── Stat Cards ────────────────────────────────────────────────────────────────
 
 function ProjectionStatCards({ data }: { data: ProjectionsResponse }) {
+  const { t } = useTranslation()
   const { ttmIncome, projectedAnnual, trend, trendPct } = data
 
   const trendColor =
@@ -63,31 +65,37 @@ function ProjectionStatCards({ data }: { data: ProjectionsResponse }) {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">TTM Income</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{fmt(ttmIncome)}</div>
-          <p className="text-xs text-muted-foreground mt-1">{fmt(ttmIncome / 12)} / month avg</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Projected Next 12 Mo
+            {t('projections.ttmIncome')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{fmt(projectedAnnual)}</div>
+          <div className="text-2xl font-bold">{fmt(ttmIncome)}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {fmt(projectedAnnual / 12)} / month avg
+            {t('projections.monthlyAvg', { amount: fmt(ttmIncome / 12) })}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Trend</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {t('projections.projectedNext12')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{fmt(projectedAnnual)}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {t('projections.monthlyAvg', { amount: fmt(projectedAnnual / 12) })}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {t('projections.trend')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className={`text-2xl font-bold flex items-center gap-2 ${trendColor}`}>
@@ -95,7 +103,9 @@ function ProjectionStatCards({ data }: { data: ProjectionsResponse }) {
             {trend >= 0 ? '+' : ''}
             {fmt(trend)}
           </div>
-          <p className={`text-xs mt-1 ${trendColor}`}>{fmtPct(trendPct)} vs last year</p>
+          <p className={`text-xs mt-1 ${trendColor}`}>
+            {fmtPct(trendPct)} {t('projections.vsLastYear')}
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -111,6 +121,7 @@ function MonthDetailModal({
   month: ProjectionChartMonth
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const title = `${MONTH_SHORT[month.month - 1]} ${month.year}`
   const total = month.detail.reduce((s, d) => s + d.amount, 0)
   const hasPaid = month.detail.some((d) => d.status === 'paid')
@@ -124,20 +135,20 @@ function MonthDetailModal({
 
         {month.isPast && !hasPaid && month.detail.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">
-            No dividends logged for this month.
+            {t('projections.noDividendsThisMonth')}
           </p>
         ) : month.detail.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">
-            No projected income for this month.
+            {t('projections.noProjectedIncome')}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ticker</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t('projections.ticker')}</TableHead>
+                <TableHead>{t('projections.account')}</TableHead>
+                <TableHead className="text-right">{t('projections.amount')}</TableHead>
+                <TableHead>{t('projections.status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,7 +157,9 @@ function MonthDetailModal({
                   <TableCell className="font-medium">{d.ticker}</TableCell>
                   <TableCell className="text-muted-foreground">{d.accountName}</TableCell>
                   <TableCell className="text-right font-mono">
-                    {d.status === 'projected' ? `~${fmt(d.amount)}` : fmt(d.amount)}
+                    {d.status === 'projected'
+                      ? t('projections.projectedAmount', { amount: fmt(d.amount) })
+                      : fmt(d.amount)}
                   </TableCell>
                   <TableCell>
                     <span
@@ -156,13 +169,15 @@ function MonthDetailModal({
                           : 'bg-accent text-accent-foreground'
                       }`}
                     >
-                      {d.status === 'paid' ? 'Paid' : 'Projected'}
+                      {d.status === 'paid'
+                        ? t('projections.statusPaid')
+                        : t('projections.statusProjected')}
                     </span>
                   </TableCell>
                 </TableRow>
               ))}
               <TableRow className="border-t-2 font-semibold">
-                <TableCell colSpan={2}>Total</TableCell>
+                <TableCell colSpan={2}>{t('projections.total')}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(total)}</TableCell>
                 <TableCell />
               </TableRow>
@@ -181,15 +196,6 @@ type SortKey = keyof Pick<
   'ticker' | 'cadence' | 'nextPayDate' | 'nextPayAmount' | 'projectedAnnual' | 'pctOfTotal'
 >
 
-const SORT_LABELS: Record<SortKey, string> = {
-  ticker: 'Ticker',
-  cadence: 'Cadence',
-  nextPayDate: 'Next Pay Date',
-  nextPayAmount: 'Next Payout',
-  projectedAnnual: 'Projected Annual',
-  pctOfTotal: '% of Total',
-}
-
 function HoldingBreakdownTable({
   projections,
   excluded,
@@ -197,9 +203,19 @@ function HoldingBreakdownTable({
   projections: HoldingProjection[]
   excluded: ProjectionsResponse['excluded']
 }) {
+  const { t } = useTranslation()
   const [sortKey, setSortKey] = useState<SortKey>('projectedAnnual')
   const [sortAsc, setSortAsc] = useState(false)
   const [showExcluded, setShowExcluded] = useState(false)
+
+  const SORT_LABELS: Record<SortKey, string> = {
+    ticker: t('projections.ticker'),
+    cadence: t('projections.cadence'),
+    nextPayDate: t('projections.nextPayDate'),
+    nextPayAmount: t('projections.nextPayout'),
+    projectedAnnual: t('projections.projectedAnnual'),
+    pctOfTotal: t('projections.pctOfTotal'),
+  }
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -248,8 +264,7 @@ function HoldingBreakdownTable({
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            No projections available — log at least 2 paid dividends per holding to enable
-            forecasting.
+            {t('projections.noProjections')}
           </p>
         </CardContent>
       </Card>
@@ -259,7 +274,7 @@ function HoldingBreakdownTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Holding Breakdown</CardTitle>
+        <CardTitle>{t('projections.holdingBreakdown')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {sorted.length > 0 ? (
@@ -269,7 +284,7 @@ function HoldingBreakdownTable({
                 <TableHead>
                   <SortBtn col="ticker" />
                 </TableHead>
-                <TableHead>Account</TableHead>
+                <TableHead>{t('projections.account')}</TableHead>
                 <TableHead>
                   <SortBtn col="cadence" />
                 </TableHead>
@@ -305,8 +320,7 @@ function HoldingBreakdownTable({
           </Table>
         ) : (
           <p className="px-6 py-4 text-sm text-muted-foreground">
-            No projections available — log at least 2 paid dividends per holding to enable
-            forecasting.
+            {t('projections.noProjections')}
           </p>
         )}
 
@@ -318,8 +332,7 @@ function HoldingBreakdownTable({
                 size="sm"
                 className="w-full justify-between rounded-none px-6 py-3 text-xs text-muted-foreground h-auto"
               >
-                {excluded.length} holding{excluded.length !== 1 ? 's' : ''} excluded from
-                projections
+                {t('projections.excludedHoldings', { count: excluded.length })}
                 {showExcluded ? (
                   <ChevronUp className="h-3 w-3" />
                 ) : (
@@ -347,6 +360,7 @@ function HoldingBreakdownTable({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function Projections() {
+  const { t } = useTranslation()
   const [selectedMonth, setSelectedMonth] = useState<ProjectionChartMonth | null>(null)
 
   const { data, isPending, isError } = useQuery({
@@ -357,7 +371,7 @@ export function Projections() {
   if (isPending) {
     return (
       <div className="p-6 max-w-7xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold">Projections</h1>
+        <h1 className="text-2xl font-bold">{t('projections.projections')}</h1>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
@@ -372,8 +386,8 @@ export function Projections() {
   if (isError || !data) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">Projections</h1>
-        <p className="text-destructive text-sm">Failed to load projection data.</p>
+        <h1 className="text-2xl font-bold mb-4">{t('projections.projections')}</h1>
+        <p className="text-destructive text-sm">{t('projections.failedToLoad')}</p>
       </div>
     )
   }
@@ -383,22 +397,21 @@ export function Projections() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Projections</h1>
+      <h1 className="text-2xl font-bold">{t('projections.projections')}</h1>
 
       <ProjectionStatCards data={data} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Income — Last 12 Months vs Next 12 Months</CardTitle>
+          <CardTitle>{t('projections.incomeChartTitle')}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Click any month group to see a per-holding breakdown.
+            {t('projections.incomeChartSubtitle')}
           </p>
         </CardHeader>
         <CardContent>
           {!hasChartData ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No projection data yet. Log at least 2 paid dividends per holding to enable
-              forecasting.
+              {t('projections.noProjectionData')}
             </p>
           ) : (
             <ProjectionGroupedBarChart

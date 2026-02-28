@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession, signOut } from '../lib/auth'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import {
@@ -9,16 +10,17 @@ import {
 } from './ui/dropdown-menu'
 import { ThemeToggle } from './ThemeToggle'
 
-const NAV_LINKS = [
-  { to: '/dividends', label: 'Dividends' },
-  { to: '/projections', label: 'Projections' },
-]
-
 export function NavBar() {
+  const { t } = useTranslation()
   const { data: session } = useSession()
   const navigate = useNavigate()
   const location = useLocation()
   const user = session?.user
+
+  const NAV_LINKS = [
+    { to: '/dividends', label: t('nav.dividends') },
+    { to: '/projections', label: t('nav.projections') },
+  ]
 
   function handleLogout() {
     signOut().then(() => navigate('/login'))
@@ -42,7 +44,7 @@ export function NavBar() {
             to="/"
             className="mr-4 shrink-0 font-display italic text-lg font-bold text-primary tracking-tight"
           >
-            VibeFolio
+            {t('auth.appName')}
           </Link>
           {NAV_LINKS.map(({ to, label }) => {
             const active = location.pathname.startsWith(to)
@@ -50,16 +52,13 @@ export function NavBar() {
               <Link
                 key={to}
                 to={to}
-                className={`relative shrink-0 px-3 py-1.5 text-sm rounded-md transition-colors ${
+                className={`shrink-0 px-4 py-1.5 text-sm rounded-full transition-colors ${
                   active
-                    ? 'text-primary font-medium bg-accent'
+                    ? 'bg-primary text-primary-foreground font-medium'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
               >
                 {label}
-                {active && (
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
-                )}
               </Link>
             )
           })}
@@ -81,7 +80,7 @@ export function NavBar() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>{t('auth.logOut')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}

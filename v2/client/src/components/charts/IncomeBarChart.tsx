@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
 import type { TTMIncomeData } from 'shared'
 import { CHART_SERIES_COLORS, CHART_FALLBACK_COLOR } from '@/lib/chartTheme'
@@ -20,6 +21,7 @@ function formatY(v: number): string {
 }
 
 export function IncomeBarChart({ data }: { data: TTMIncomeData }) {
+  const { t } = useTranslation()
   const svgRef = useRef<SVGSVGElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
@@ -138,7 +140,7 @@ export function IncomeBarChart({ data }: { data: TTMIncomeData }) {
   }, [data, hasData])
 
   if (!hasData) {
-    return <p className="text-muted-foreground text-sm">No dividend data yet.</p>
+    return <p className="text-muted-foreground text-sm">{t('dashboard.noDividendData')}</p>
   }
 
   return (

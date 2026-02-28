@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import type { DividendStatus } from 'shared'
 import {
   getAccount,
@@ -47,6 +48,7 @@ function HoldingForm({
   onSubmit: (values: HoldingFormValues) => void
   isSubmitting: boolean
 }) {
+  const { t } = useTranslation()
   const {
     register,
     handleSubmit,
@@ -59,38 +61,38 @@ function HoldingForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1 col-span-2">
-          <Label>Ticker</Label>
+          <Label>{t('holding.ticker')}</Label>
           <Input
-            placeholder="e.g. AAPL"
-            {...register('ticker', { required: 'Required' })}
+            placeholder={t('holding.tickerPlaceholder')}
+            {...register('ticker', { required: t('common.required') })}
           />
           {errors.ticker && <p className="text-sm text-destructive">{errors.ticker.message}</p>}
         </div>
         <div className="space-y-1">
-          <Label>Shares</Label>
+          <Label>{t('holding.shares')}</Label>
           <Input
             type="number"
             step="any"
-            placeholder="10"
-            {...register('shares', { required: 'Required' })}
+            placeholder={t('holding.sharesPlaceholder')}
+            {...register('shares', { required: t('common.required') })}
           />
           {errors.shares && <p className="text-sm text-destructive">{errors.shares.message}</p>}
         </div>
         <div className="space-y-1">
-          <Label>Avg Cost Basis</Label>
+          <Label>{t('holding.avgCostBasis')}</Label>
           <Input
             type="number"
             step="any"
-            placeholder="150.00"
-            {...register('avgCostBasis', { required: 'Required' })}
+            placeholder={t('holding.costBasisPlaceholder')}
+            {...register('avgCostBasis', { required: t('common.required') })}
           />
           {errors.avgCostBasis && (
             <p className="text-sm text-destructive">{errors.avgCostBasis.message}</p>
           )}
         </div>
         <div className="space-y-1 col-span-2">
-          <Label>Purchase Date</Label>
-          <Input type="date" {...register('purchaseDate', { required: 'Required' })} />
+          <Label>{t('holding.purchaseDate')}</Label>
+          <Input type="date" {...register('purchaseDate', { required: t('common.required') })} />
           {errors.purchaseDate && (
             <p className="text-sm text-destructive">{errors.purchaseDate.message}</p>
           )}
@@ -98,7 +100,7 @@ function HoldingForm({
       </div>
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? t('common.saving') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>
@@ -128,6 +130,7 @@ type EnrichedRow = AggregatedRow & {
 }
 
 export function AccountDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const qc = useQueryClient()
 
@@ -264,6 +267,12 @@ export function AccountDetail() {
     return 'text-amber-500'
   }
 
+  const statusLabel = (status: DividendStatus): string => {
+    if (status === 'paid') return t('dividend.statusPaid')
+    if (status === 'scheduled') return t('dividend.statusScheduled')
+    return t('dividend.statusProjected')
+  }
+
   if (accountPending) {
     return (
       <div className="p-6 max-w-5xl mx-auto space-y-4">
@@ -277,7 +286,7 @@ export function AccountDetail() {
   if (isError || !account) {
     return (
       <div className="p-6">
-        <p className="text-destructive">Account not found.</p>
+        <p className="text-destructive">{t('account.notFound')}</p>
       </div>
     )
   }
@@ -294,13 +303,13 @@ export function AccountDetail() {
       {/* Holdings section */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Holdings</h2>
+          <h2 className="text-lg font-semibold">{t('holding.holdings')}</h2>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-              Import from CSV
+              {t('holding.importCsv')}
             </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
-              Add Holding
+              {t('holding.addHolding')}
             </Button>
           </div>
         </div>
@@ -309,20 +318,20 @@ export function AccountDetail() {
           <Skeleton className="h-40 rounded-xl" />
         ) : sortedHoldings.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            No holdings yet. Add one to start tracking.
+            {t('holding.noHoldings')}
           </p>
         ) : (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortHeader col="ticker" label="Ticker" />
-                  <SortHeader col="totalShares" label="Shares" />
-                  <SortHeader col="weightedAvgCostBasis" label="Avg Cost" />
-                  <SortHeader col="currentPrice" label="Current Price" />
-                  <SortHeader col="value" label="Value" />
-                  <SortHeader col="gainLoss" label="Gain/Loss" />
-                  <SortHeader col="returnPct" label="Return %" />
+                  <SortHeader col="ticker" label={t('holding.ticker')} />
+                  <SortHeader col="totalShares" label={t('holding.shares')} />
+                  <SortHeader col="weightedAvgCostBasis" label={t('holding.avgCost')} />
+                  <SortHeader col="currentPrice" label={t('holding.currentPrice')} />
+                  <SortHeader col="value" label={t('holding.currentValue')} />
+                  <SortHeader col="gainLoss" label={t('holding.unrealizedGainLoss')} />
+                  <SortHeader col="returnPct" label={t('holding.returnPct')} />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -347,7 +356,7 @@ export function AccountDetail() {
                             <span className={isStale ? 'text-muted-foreground' : ''}>
                               ${row.currentPrice.toFixed(2)}
                               {isStale && (
-                                <span className="ml-1 text-xs text-yellow-500" title={`As of ${priceData?.date}`}>
+                                <span className="ml-1 text-xs text-yellow-500" title={t('common.staleAsOf', { date: priceData?.date })}>
                                   ●
                                 </span>
                               )}
@@ -374,12 +383,12 @@ export function AccountDetail() {
       {/* Dividends section */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Dividends</h2>
+          <h2 className="text-lg font-semibold">{t('dividend.dividends')}</h2>
           <Link
             to="/dividends"
             className="text-sm text-primary hover:underline"
           >
-            Manage Dividends →
+            {t('dividend.manageDividends')}
           </Link>
         </div>
 
@@ -387,9 +396,9 @@ export function AccountDetail() {
           <Skeleton className="h-32 rounded-xl" />
         ) : !dividends || dividends.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            No dividends logged yet.{' '}
+            {t('dividend.noDividends')}{' '}
             <Link to="/dividends" className="text-primary hover:underline">
-              Log one on the Dividends page.
+              {t('dividend.logOnDividendsPage')}
             </Link>
           </p>
         ) : (
@@ -397,11 +406,11 @@ export function AccountDetail() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticker</TableHead>
-                  <TableHead>Amount/Share</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Pay Date</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('dividend.ticker')}</TableHead>
+                  <TableHead>{t('dividend.amountPerShareShort')}</TableHead>
+                  <TableHead>{t('dividend.total')}</TableHead>
+                  <TableHead>{t('dividend.payDate')}</TableHead>
+                  <TableHead>{t('dividend.status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -413,7 +422,7 @@ export function AccountDetail() {
                     <TableCell>{d.payDate}</TableCell>
                     <TableCell>
                       <span className={`capitalize text-sm font-medium ${statusBadgeClass(d.status)}`}>
-                        {d.status}
+                        {statusLabel(d.status)}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -428,7 +437,7 @@ export function AccountDetail() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Holding</DialogTitle>
+            <DialogTitle>{t('holding.addHolding')}</DialogTitle>
           </DialogHeader>
           <HoldingForm
             onSubmit={(values) => createMutation.mutate(values)}

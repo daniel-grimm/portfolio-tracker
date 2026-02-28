@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import type { DividendWithAccount, DividendStatus } from 'shared'
 import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import {
@@ -58,14 +59,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-// ── Calendar constants ────────────────────────────────────────────────────────
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function statusBadgeClass(status: DividendStatus) {
@@ -85,6 +78,7 @@ function DayCell({
   dividends: DividendWithAccount[]
   monthName: string
 }) {
+  const { t } = useTranslation()
   const hasDivs = dividends.length > 0
   const allProjected = hasDivs && dividends.every((d) => d.status === 'projected')
 
@@ -139,7 +133,7 @@ function DayCell({
               const isProjected = d.status === 'projected'
               const amount =
                 isProjected && d.projectedPayout
-                  ? `~$${parseFloat(d.projectedPayout).toFixed(2)}`
+                  ? t('dividend.projectedAmount', { amount: `$${parseFloat(d.projectedPayout).toFixed(2)}` })
                   : `$${parseFloat(d.totalAmount).toFixed(2)}`
               return (
                 <div
@@ -158,7 +152,7 @@ function DayCell({
                           : 'bg-gain-subtle text-gain'
                       }`}
                     >
-                      {isProjected ? 'projected' : 'paid'}
+                      {isProjected ? t('dividend.statusProjected') : t('dividend.statusPaid')}
                     </span>
                     <span className="font-medium tabular-nums">{amount}</span>
                   </div>
@@ -195,6 +189,7 @@ function DividendHistoryModal({
   onEdit: (d: DividendWithAccount) => void
   onDelete: (d: DividendWithAccount) => void
 }) {
+  const { t } = useTranslation()
   const [sortCol, setSortCol] = useState<SortCol>('payDate')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
@@ -224,17 +219,23 @@ function DividendHistoryModal({
     })
   }, [dividends, sortCol, sortDir])
 
+  function statusLabel(status: DividendStatus): string {
+    if (status === 'paid') return t('dividend.statusPaid')
+    if (status === 'scheduled') return t('dividend.statusScheduled')
+    return t('dividend.statusProjected')
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl sm:max-w-5xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Dividend History</DialogTitle>
+          <DialogTitle>{t('dividend.dividendHistory')}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-auto min-h-0">
           {isPending ? (
             <Skeleton className="h-64 rounded-xl" />
           ) : !sorted.length ? (
-            <p className="text-muted-foreground text-sm py-4">No dividends logged yet.</p>
+            <p className="text-muted-foreground text-sm py-4">{t('dividend.noDividends')}</p>
           ) : (
             <Table>
               <TableHeader>
@@ -244,22 +245,22 @@ function DividendHistoryModal({
                       className="flex items-center font-medium hover:text-foreground transition-colors"
                       onClick={() => toggleSort('ticker')}
                     >
-                      Ticker
+                      {t('dividend.ticker')}
                       <SortIcon col="ticker" active={sortCol} dir={sortDir} />
                     </button>
                   </TableHead>
-                  <TableHead>Account</TableHead>
+                  <TableHead>{t('dividend.account')}</TableHead>
                   <TableHead>
                     <button
                       className="flex items-center font-medium hover:text-foreground transition-colors"
                       onClick={() => toggleSort('payDate')}
                     >
-                      Pay Date
+                      {t('dividend.payDate')}
                       <SortIcon col="payDate" active={sortCol} dir={sortDir} />
                     </button>
                   </TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('dividend.amount')}</TableHead>
+                  <TableHead>{t('dividend.status')}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -272,7 +273,7 @@ function DividendHistoryModal({
                     <TableCell>
                       {d.status === 'projected' && d.projectedPayout ? (
                         <span className="text-amber-500 italic">
-                          ~${Number(d.projectedPayout).toFixed(2)}
+                          {t('dividend.projectedAmount', { amount: `$${Number(d.projectedPayout).toFixed(2)}` })}
                         </span>
                       ) : (
                         `$${Number(d.totalAmount).toFixed(2)}`
@@ -280,7 +281,7 @@ function DividendHistoryModal({
                     </TableCell>
                     <TableCell>
                       <span className={`capitalize text-sm font-medium ${statusBadgeClass(d.status)}`}>
-                        {d.status}
+                        {statusLabel(d.status)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -334,6 +335,7 @@ function CreateDividendForm({
   onSubmit: (values: CreateFormValues) => void
   isSubmitting: boolean
 }) {
+  const { t } = useTranslation()
   const { register, handleSubmit, watch, setValue, formState: { errors } } =
     useForm<CreateFormValues>({
       defaultValues: {
@@ -380,12 +382,12 @@ function CreateDividendForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1 col-span-2">
-          <Label>Portfolio</Label>
+          <Label>{t('portfolio.portfolio')}</Label>
           <Select
             value={portfolioId}
             onValueChange={(v) => { setValue('portfolioId', v); setValue('accountId', ''); setValue('ticker', '') }}
           >
-            <SelectTrigger><SelectValue placeholder="Select portfolio" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t('dividend.selectPortfolio')} /></SelectTrigger>
             <SelectContent>
               {portfolios?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
             </SelectContent>
@@ -393,14 +395,14 @@ function CreateDividendForm({
         </div>
 
         <div className="space-y-1 col-span-2">
-          <Label>Account</Label>
+          <Label>{t('account.account')}</Label>
           <Select
             value={accountId}
             disabled={!portfolioId}
             onValueChange={(v) => { setValue('accountId', v); setValue('ticker', '') }}
           >
             <SelectTrigger>
-              <SelectValue placeholder={portfolioId ? 'Select account' : 'Select a portfolio first'} />
+              <SelectValue placeholder={portfolioId ? t('dividend.selectAccount') : t('dividend.selectAccountFirst')} />
             </SelectTrigger>
             <SelectContent>
               {accounts?.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
@@ -409,14 +411,14 @@ function CreateDividendForm({
         </div>
 
         <div className="space-y-1 col-span-2">
-          <Label>Ticker</Label>
+          <Label>{t('dividend.ticker')}</Label>
           <Select
             value={watch('ticker')}
             disabled={!accountId}
             onValueChange={(v) => setValue('ticker', v)}
           >
             <SelectTrigger>
-              <SelectValue placeholder={accountId ? 'Select ticker' : 'Select an account first'} />
+              <SelectValue placeholder={accountId ? t('dividend.selectTicker') : t('dividend.selectTickerFirst')} />
             </SelectTrigger>
             <SelectContent>
               {uniqueTickers.map(([ticker, totalShares]) => (
@@ -429,49 +431,49 @@ function CreateDividendForm({
         </div>
 
         <div className="space-y-1">
-          <Label>Status</Label>
+          <Label>{t('dividend.status')}</Label>
           <Select value={status} onValueChange={(v) => setValue('status', v as DividendStatus)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="projected">Projected</SelectItem>
+              <SelectItem value="paid">{t('dividend.statusPaid')}</SelectItem>
+              <SelectItem value="scheduled">{t('dividend.statusScheduled')}</SelectItem>
+              <SelectItem value="projected">{t('dividend.statusProjected')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Pay Date</Label>
-          <Input type="date" {...register('payDate', { required: 'Required' })} />
+          <Label>{t('dividend.payDate')}</Label>
+          <Input type="date" {...register('payDate', { required: t('common.required') })} />
           {errors.payDate && <p className="text-sm text-destructive">{errors.payDate.message}</p>}
         </div>
 
         <div className="space-y-1">
-          <Label>Amount / Share</Label>
-          <Input type="number" step="any" placeholder="0.50" {...register('amountPerShare', { required: 'Required' })} />
+          <Label>{t('dividend.amountPerShare')}</Label>
+          <Input type="number" step="any" placeholder={t('dividend.amountPerSharePlaceholder')} {...register('amountPerShare', { required: t('common.required') })} />
           {errors.amountPerShare && <p className="text-sm text-destructive">{errors.amountPerShare.message}</p>}
         </div>
         <div className="space-y-1">
-          <Label>Total Payout</Label>
-          <Input type="number" step="any" placeholder="5.00" {...register('totalAmount', { required: 'Required' })} />
+          <Label>{t('dividend.totalPayout')}</Label>
+          <Input type="number" step="any" placeholder={t('dividend.totalPayoutPlaceholder')} {...register('totalAmount', { required: t('common.required') })} />
           {errors.totalAmount && <p className="text-sm text-destructive">{errors.totalAmount.message}</p>}
         </div>
 
         {isProjected && (
           <>
             <div className="space-y-1">
-              <Label>Projected / Share</Label>
-              <Input type="number" step="any" placeholder="0.55" {...register('projectedPerShare')} />
+              <Label>{t('dividend.projectedPerShare')}</Label>
+              <Input type="number" step="any" placeholder={t('dividend.projectedPerSharePlaceholder')} {...register('projectedPerShare')} />
             </div>
             <div className="space-y-1">
-              <Label>Projected Payout</Label>
-              <Input type="number" step="any" placeholder="8.25" {...register('projectedPayout')} />
+              <Label>{t('dividend.projectedPayout')}</Label>
+              <Input type="number" step="any" placeholder={t('dividend.projectedPayoutPlaceholder')} {...register('projectedPayout')} />
             </div>
           </>
         )}
       </div>
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting || !accountId || !watch('ticker')}>
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? t('common.saving') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>
@@ -487,6 +489,7 @@ function EditDividendForm({
   onSubmit: (values: EditFormValues) => void
   isSubmitting: boolean
 }) {
+  const { t } = useTranslation()
   const { register, handleSubmit, watch, setValue, formState: { errors } } =
     useForm<EditFormValues>({ defaultValues })
 
@@ -497,39 +500,39 @@ function EditDividendForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label>Status</Label>
+          <Label>{t('dividend.status')}</Label>
           <Select value={status} onValueChange={(v) => setValue('status', v as DividendStatus)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="projected">Projected</SelectItem>
+              <SelectItem value="paid">{t('dividend.statusPaid')}</SelectItem>
+              <SelectItem value="scheduled">{t('dividend.statusScheduled')}</SelectItem>
+              <SelectItem value="projected">{t('dividend.statusProjected')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Pay Date</Label>
-          <Input type="date" {...register('payDate', { required: 'Required' })} />
+          <Label>{t('dividend.payDate')}</Label>
+          <Input type="date" {...register('payDate', { required: t('common.required') })} />
           {errors.payDate && <p className="text-sm text-destructive">{errors.payDate.message}</p>}
         </div>
         <div className="space-y-1">
-          <Label>Amount / Share</Label>
-          <Input type="number" step="any" {...register('amountPerShare', { required: 'Required' })} />
+          <Label>{t('dividend.amountPerShare')}</Label>
+          <Input type="number" step="any" {...register('amountPerShare', { required: t('common.required') })} />
           {errors.amountPerShare && <p className="text-sm text-destructive">{errors.amountPerShare.message}</p>}
         </div>
         <div className="space-y-1">
-          <Label>Total Payout</Label>
-          <Input type="number" step="any" {...register('totalAmount', { required: 'Required' })} />
+          <Label>{t('dividend.totalPayout')}</Label>
+          <Input type="number" step="any" {...register('totalAmount', { required: t('common.required') })} />
           {errors.totalAmount && <p className="text-sm text-destructive">{errors.totalAmount.message}</p>}
         </div>
         {isProjected && (
           <>
             <div className="space-y-1">
-              <Label>Projected / Share</Label>
+              <Label>{t('dividend.projectedPerShare')}</Label>
               <Input type="number" step="any" {...register('projectedPerShare')} />
             </div>
             <div className="space-y-1">
-              <Label>Projected Payout</Label>
+              <Label>{t('dividend.projectedPayout')}</Label>
               <Input type="number" step="any" {...register('projectedPayout')} />
             </div>
           </>
@@ -537,7 +540,7 @@ function EditDividendForm({
       </div>
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? t('common.saving') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>
@@ -567,6 +570,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function Dividends() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [params, setParams] = useSearchParams()
   const now = new Date()
@@ -575,6 +579,9 @@ export function Dividends() {
   const month = parseInt(params.get('month') ?? '') || now.getMonth() + 1
 
   const currentYear = new Date().getFullYear()
+
+  const MONTH_NAMES = t('calendar.months', { returnObjects: true }) as string[]
+  const DAY_LABELS = t('calendar.days', { returnObjects: true }) as string[]
 
   const { data: summary, isPending: summaryPending } = useQuery({
     queryKey: ['dashboardSummary'],
@@ -674,9 +681,9 @@ export function Dividends() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dividends</h1>
+        <h1 className="text-2xl font-bold">{t('dividend.dividends')}</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
-          Log Dividend
+          {t('dividend.logDividend')}
         </Button>
       </div>
 
@@ -687,9 +694,9 @@ export function Dividends() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="YTD Income" value={fmt(summary?.ytdIncome ?? 0)} sub={`${currentYear}`} />
-          <StatCard label="All-Time Income" value={fmt(summary?.allTimeIncome ?? 0)} />
-          <StatCard label="Projected Annual" value={fmt(summary?.projectedAnnual ?? 0)} sub="Last 12 months paid" />
+          <StatCard label={t('dividend.ytdIncome')} value={fmt(summary?.ytdIncome ?? 0)} sub={`${currentYear}`} />
+          <StatCard label={t('dividend.allTimeIncome')} value={fmt(summary?.allTimeIncome ?? 0)} />
+          <StatCard label={t('dividend.projectedAnnual')} value={fmt(summary?.projectedAnnual ?? 0)} sub={t('dividend.last12MonthsPaid')} />
         </div>
       )}
 
@@ -698,21 +705,21 @@ export function Dividends() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigateMonth(-1)}>
-              ‹ Prev
+              {t('calendar.prev')}
             </Button>
             <span className="text-sm font-medium w-36 text-center">
               {monthName} {year}
             </span>
             <Button variant="outline" size="sm" onClick={() => navigateMonth(1)}>
-              Next ›
+              {t('calendar.next')}
             </Button>
           </div>
           <div className="flex gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-gain inline-block" /> Paid
+              <span className="w-2 h-2 rounded-full bg-gain inline-block" /> {t('calendar.paid')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Projected
+              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> {t('calendar.projected')}
             </span>
           </div>
         </div>
@@ -724,7 +731,7 @@ export function Dividends() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Accounts</SelectItem>
+                <SelectItem value="all">{t('calendar.allAccounts')}</SelectItem>
                 {accountOptions.map((name) => (
                   <SelectItem key={name} value={name}>{name}</SelectItem>
                 ))}
@@ -750,7 +757,7 @@ export function Dividends() {
                 key={idx}
                 day={day}
                 dividends={day ? (dividendsByDay.get(day) ?? []) : []}
-                monthName={monthName}
+                monthName={monthName ?? ''}
               />
             ))}
           </div>
@@ -760,7 +767,7 @@ export function Dividends() {
       {/* ── Full History ── */}
       <div>
         <Button variant="outline" onClick={() => setHistoryOpen(true)}>
-          Full History
+          {t('calendar.fullHistory')}
         </Button>
       </div>
 
@@ -774,7 +781,7 @@ export function Dividends() {
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Log Dividend</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('dividend.logDividend')}</DialogTitle></DialogHeader>
           <CreateDividendForm
             onSubmit={(values) => createMutation.mutate(values)}
             isSubmitting={createMutation.isPending}
@@ -785,7 +792,7 @@ export function Dividends() {
       <Dialog open={editTarget !== null} onOpenChange={(open) => !open && setEditTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Dividend — {editTarget?.ticker}</DialogTitle>
+            <DialogTitle>{t('dividend.editDividend', { ticker: editTarget?.ticker })}</DialogTitle>
           </DialogHeader>
           {editTarget && (
             <EditDividendForm
@@ -807,21 +814,26 @@ export function Dividends() {
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Dividend</AlertDialogTitle>
+            <AlertDialogTitle>{t('dividend.deleteDividend')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the{' '}
-              <strong>{deleteTarget?.ticker}</strong> dividend (pay date:{' '}
-              {deleteTarget?.payDate})? This action cannot be undone.
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: t('dividend.deleteConfirm', {
+                    ticker: deleteTarget?.ticker ?? '',
+                    payDate: deleteTarget?.payDate ?? '',
+                  }),
+                }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
             >
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              {deleteMutation.isPending ? t('common.deleting') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

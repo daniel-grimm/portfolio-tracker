@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -43,6 +44,7 @@ function PortfolioForm({
   onSubmit: (values: PortfolioFormValues) => void
   isSubmitting: boolean
 }) {
+  const { t } = useTranslation()
   const {
     register,
     handleSubmit,
@@ -54,23 +56,23 @@ function PortfolioForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{t('common.name')}</Label>
         <Input
           id="name"
-          placeholder="e.g. Retirement"
-          {...register('name', { required: 'Name is required' })}
+          placeholder={t('portfolio.namePlaceholder')}
+          {...register('name', { required: t('common.nameRequired') })}
         />
         {errors.name && (
           <p className="text-sm text-destructive">{errors.name.message}</p>
         )}
       </div>
       <div className="space-y-1">
-        <Label htmlFor="description">Description</Label>
-        <Input id="description" placeholder="Optional" {...register('description')} />
+        <Label htmlFor="description">{t('common.description')}</Label>
+        <Input id="description" placeholder={t('common.optional')} {...register('description')} />
       </div>
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? t('common.saving') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>
@@ -78,6 +80,7 @@ function PortfolioForm({
 }
 
 export function Portfolios() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const qc = useQueryClient()
 
@@ -118,8 +121,8 @@ export function Portfolios() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Portfolios</h1>
-        <Button onClick={() => setCreateOpen(true)}>New Portfolio</Button>
+        <h1 className="text-2xl font-bold">{t('portfolio.portfolios')}</h1>
+        <Button onClick={() => setCreateOpen(true)}>{t('portfolio.newPortfolio')}</Button>
       </div>
 
       {isPending ? (
@@ -130,7 +133,7 @@ export function Portfolios() {
         </div>
       ) : portfolios?.length === 0 ? (
         <p className="text-muted-foreground">
-          No portfolios yet. Create one to get started.
+          {t('portfolio.noPortfolios')}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -149,14 +152,14 @@ export function Portfolios() {
                       size="sm"
                       onClick={() => setEditTarget(p)}
                     >
-                      Edit
+                      {t('common.edit')}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeleteTarget(p)}
                     >
-                      Delete
+                      {t('common.delete')}
                     </Button>
                   </span>
                 </CardTitle>
@@ -175,7 +178,7 @@ export function Portfolios() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Portfolio</DialogTitle>
+            <DialogTitle>{t('portfolio.newPortfolio')}</DialogTitle>
           </DialogHeader>
           <PortfolioForm
             onSubmit={(values) => createMutation.mutate(values)}
@@ -188,7 +191,7 @@ export function Portfolios() {
       <Dialog open={editTarget !== null} onOpenChange={(open) => !open && setEditTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Portfolio</DialogTitle>
+            <DialogTitle>{t('portfolio.editPortfolio')}</DialogTitle>
           </DialogHeader>
           {editTarget && (
             <PortfolioForm
@@ -212,20 +215,21 @@ export function Portfolios() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Portfolio</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? All accounts,
-              holdings, and dividends will also be deleted. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('portfolio.deletePortfolio')}</AlertDialogTitle>
+            <AlertDialogDescription
+              dangerouslySetInnerHTML={{
+                __html: t('portfolio.deleteConfirm', { name: deleteTarget?.name ?? '' }),
+              }}
+            />
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
             >
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              {deleteMutation.isPending ? t('common.deleting') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

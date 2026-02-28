@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -25,6 +26,7 @@ function PortfolioForm({
   onSubmit: (values: PortfolioFormValues) => void
   isSubmitting: boolean
 }) {
+  const { t } = useTranslation()
   const {
     register,
     handleSubmit,
@@ -34,21 +36,21 @@ function PortfolioForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{t('common.name')}</Label>
         <Input
           id="name"
-          placeholder="e.g. Retirement"
-          {...register('name', { required: 'Name is required' })}
+          placeholder={t('portfolio.namePlaceholder')}
+          {...register('name', { required: t('common.nameRequired') })}
         />
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
       <div className="space-y-1">
-        <Label htmlFor="description">Description</Label>
-        <Input id="description" placeholder="Optional" {...register('description')} />
+        <Label htmlFor="description">{t('common.description')}</Label>
+        <Input id="description" placeholder={t('common.optional')} {...register('description')} />
       </div>
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
+          {isSubmitting ? t('common.saving') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>
@@ -61,6 +63,7 @@ function fmt(n: number) {
 }
 
 export function Dashboard() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -106,20 +109,20 @@ export function Dashboard() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">{t('dashboard.dashboard')}</h1>
 
       {/* Portfolio breakdown */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Portfolio Breakdown</h2>
+          <h2 className="text-lg font-semibold">{t('dashboard.portfolioBreakdown')}</h2>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
-            New Portfolio
+            {t('portfolio.newPortfolio')}
           </Button>
         </div>
         {summaryPending ? (
           <Skeleton className="h-24 rounded-xl" />
         ) : !summary?.portfolioBreakdown || summary.portfolioBreakdown.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No portfolios yet. Create one to get started.</p>
+          <p className="text-muted-foreground text-sm">{t('portfolio.noPortfolios')}</p>
         ) : (
           <div className="rounded-md border divide-y">
             {summary.portfolioBreakdown.map((p) => (
@@ -131,15 +134,15 @@ export function Dashboard() {
                 <span className="font-medium">{p.name}</span>
                 <div className="flex gap-6 text-sm text-right">
                   <div>
-                    <p className="text-muted-foreground text-xs">Value</p>
+                    <p className="text-muted-foreground text-xs">{t('portfolio.value')}</p>
                     <p>{fmt(p.totalValue)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Cost</p>
+                    <p className="text-muted-foreground text-xs">{t('portfolio.cost')}</p>
                     <p>{fmt(p.costBasis)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Gain/Loss</p>
+                    <p className="text-muted-foreground text-xs">{t('portfolio.gainLoss')}</p>
                     <p className={p.gainLoss >= 0 ? 'text-gain' : 'text-loss'}>
                       {p.gainLoss >= 0 ? '+' : ''}
                       {fmt(p.gainLoss)}
@@ -154,7 +157,7 @@ export function Dashboard() {
 
       {/* Income bar chart */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Income — Trailing 12 Months</h2>
+        <h2 className="text-lg font-semibold">{t('dashboard.incomeTrailing12')}</h2>
         {ttmPending ? (
           <Skeleton className="rounded-xl" style={{ height: 260 }} />
         ) : ttmIncome ? (
@@ -165,7 +168,7 @@ export function Dashboard() {
       {/* Top dividend payers */}
       {topPayersList.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Top Dividend Payers</h2>
+          <h2 className="text-lg font-semibold">{t('dashboard.topDividendPayers')}</h2>
           <div className="rounded-md border divide-y">
             {topPayersList.map(([ticker, total]) => (
               <div key={ticker} className="flex items-center justify-between px-4 py-2">
@@ -181,7 +184,7 @@ export function Dashboard() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Portfolio</DialogTitle>
+            <DialogTitle>{t('portfolio.newPortfolio')}</DialogTitle>
           </DialogHeader>
           <PortfolioForm
             onSubmit={(values) => createMutation.mutate(values)}

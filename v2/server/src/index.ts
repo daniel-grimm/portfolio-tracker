@@ -11,6 +11,7 @@ import holdingsRouter from './routes/holdings.js'
 import dividendsRouter from './routes/dividends.js'
 import pricesRouter from './routes/prices.js'
 import dashboardRouter from './routes/dashboard.js'
+import projectionsRouter from './routes/projections.js'
 import userPreferencesRouter from './routes/userPreferences.js'
 
 const app = express()
@@ -46,6 +47,7 @@ app.use('/api/v1', holdingsRouter)
 app.use('/api/v1', dividendsRouter)
 app.use('/api/v1', pricesRouter)
 app.use('/api/v1', dashboardRouter)
+app.use('/api/v1', projectionsRouter)
 app.use('/api', userPreferencesRouter)
 
 async function main() {

@@ -23,6 +23,7 @@ import type {
   UserPreferences,
   Theme,
   TTMIncomeData,
+  ProjectionsResponse,
 } from 'shared'
 
 const BASE = import.meta.env.VITE_API_BASE_URL as string
@@ -217,4 +218,10 @@ export function getValueHistory(
   return request<PortfolioValuePoint[]>(
     `/api/v1/portfolios/${portfolioId}/value-history?range=${range}`,
   )
+}
+
+// Projections
+
+export function getProjections(): Promise<ProjectionsResponse> {
+  return request<ProjectionsResponse>('/api/v1/projections')
 }

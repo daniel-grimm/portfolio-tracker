@@ -205,3 +205,48 @@ export type TTMIncomeData = {
   months: TTMIncomeMonth[]
   accounts: { accountId: string; accountName: string }[]
 }
+
+// ── Projections page types ────────────────────────────────────────────────────
+
+export type ProjectionMonthDetail = {
+  ticker: string
+  accountName: string
+  amount: number
+  status: 'paid' | 'projected'
+}
+
+export type ProjectionChartMonth = {
+  year: number
+  month: number // 1-12
+  actual: number | null // null for future months
+  projected: number
+  isPast: boolean
+  detail: ProjectionMonthDetail[]
+}
+
+export type HoldingProjection = {
+  holdingId: string // synthetic key: accountId:ticker
+  ticker: string
+  accountName: string
+  cadence: 'monthly' | 'quarterly' | 'annual'
+  nextPayDate: string // ISO date
+  nextPayAmount: number
+  projectedAnnual: number
+  pctOfTotal: number // 0–100
+}
+
+export type ExcludedHolding = {
+  ticker: string
+  accountName: string
+  reason: string
+}
+
+export type ProjectionsResponse = {
+  ttmIncome: number
+  projectedAnnual: number
+  trend: number
+  trendPct: number
+  chartData: ProjectionChartMonth[]
+  holdingProjections: HoldingProjection[]
+  excluded: ExcludedHolding[]
+}

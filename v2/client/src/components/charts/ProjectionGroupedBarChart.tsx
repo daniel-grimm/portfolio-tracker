@@ -4,9 +4,9 @@ import type { ProjectionChartMonth } from 'shared'
 
 const MARGIN = { top: 20, right: 20, bottom: 60, left: 70 }
 const HEIGHT = 300
-const ACTUAL_COLOR = '#10b981' // emerald-500
-const PROJECTED_COLOR = '#10b98180' // emerald-500 at ~50% opacity
-const DIVIDER_COLOR = '#6b7280'
+const ACTUAL_COLOR = '#78A86A'   // gain green (works in both themes)
+const PROJECTED_COLOR = '#E8920A99' // marigold at ~60% opacity
+const DIVIDER_COLOR = '#7A7068'
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -206,11 +206,11 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
     <div ref={containerRef} className="w-full">
       <div className="flex gap-4 mb-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500" />
+          <span className="inline-block w-3 h-3 rounded-sm bg-gain" />
           Actual
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500/50" />
+          <span className="inline-block w-3 h-3 rounded-sm bg-primary/60" />
           Projected
         </span>
       </div>

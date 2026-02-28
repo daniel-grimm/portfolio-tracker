@@ -53,9 +53,9 @@ function ProjectionStatCards({ data }: { data: ProjectionsResponse }) {
 
   const trendColor =
     trendPct > 1
-      ? 'text-emerald-500'
+      ? 'text-gain'
       : trendPct < -1
-        ? 'text-red-500'
+        ? 'text-loss'
         : 'text-muted-foreground'
   const TrendIcon = trendPct > 1 ? TrendingUp : trendPct < -1 ? TrendingDown : Minus
 
@@ -152,8 +152,8 @@ function MonthDetailModal({
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
                         d.status === 'paid'
-                          ? 'bg-emerald-500/15 text-emerald-600'
-                          : 'bg-amber-500/15 text-amber-600'
+                          ? 'bg-gain-subtle text-gain'
+                          : 'bg-accent text-accent-foreground'
                       }`}
                     >
                       {d.status === 'paid' ? 'Paid' : 'Projected'}

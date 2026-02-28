@@ -6,14 +6,14 @@ const MARGIN = { top: 20, right: 20, bottom: 50, left: 70 }
 const HEIGHT = 260
 
 const ACCOUNT_COLORS = [
-  '#6366f1', // indigo
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#3b82f6', // blue
-  '#ec4899', // pink
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#f97316', // orange
+  '#E8920A', // marigold
+  '#78A86A', // warm green
+  '#5A9AAC', // warm teal
+  '#D4724A', // terracotta
+  '#A06AB8', // warm purple
+  '#C8A040', // warm gold
+  '#6A8CC8', // slate blue
+  '#C86A7A', // dusty rose
 ]
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

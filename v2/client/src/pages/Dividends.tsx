@@ -69,7 +69,7 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function statusBadgeClass(status: DividendStatus) {
-  if (status === 'paid') return 'text-green-600 dark:text-green-400'
+  if (status === 'paid') return 'text-gain'
   if (status === 'scheduled') return 'text-blue-600 dark:text-blue-400'
   return 'text-amber-500'
 }
@@ -105,7 +105,7 @@ function DayCell({
     return sum + amt
   }, 0)
   const chipLabel = allProjected ? `~$${total.toFixed(2)}` : `$${total.toFixed(2)}`
-  const chipColor = allProjected ? 'bg-amber-500' : 'bg-green-500'
+  const chipColor = allProjected ? 'bg-primary' : 'bg-gain'
 
   const content = (
     <div className={`min-h-[72px] rounded-md border p-1.5 text-sm flex flex-col gap-1 ${cellBg}`}>
@@ -154,8 +154,8 @@ function DayCell({
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                         isProjected
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                          : 'bg-green-500/15 text-green-600 dark:text-green-400'
+                          ? 'bg-accent text-accent-foreground'
+                          : 'bg-gain-subtle text-gain'
                       }`}
                     >
                       {isProjected ? 'projected' : 'paid'}
@@ -709,7 +709,7 @@ export function Dividends() {
           </div>
           <div className="flex gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Paid
+              <span className="w-2 h-2 rounded-full bg-gain inline-block" /> Paid
             </span>
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Projected

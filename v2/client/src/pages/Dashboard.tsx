@@ -140,7 +140,7 @@ export function Dashboard() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Gain/Loss</p>
-                    <p className={p.gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}>
+                    <p className={p.gainLoss >= 0 ? 'text-gain' : 'text-loss'}>
                       {p.gainLoss >= 0 ? '+' : ''}
                       {fmt(p.gainLoss)}
                     </p>

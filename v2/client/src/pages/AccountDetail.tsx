@@ -259,7 +259,7 @@ export function AccountDetail() {
   }
 
   const statusBadgeClass = (status: DividendStatus) => {
-    if (status === 'paid') return 'text-green-600 dark:text-green-400'
+    if (status === 'paid') return 'text-gain'
     if (status === 'scheduled') return 'text-blue-600 dark:text-blue-400'
     return 'text-amber-500'
   }
@@ -354,10 +354,10 @@ export function AccountDetail() {
                             </span>
                           </TableCell>
                           <TableCell>${row.value!.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                          <TableCell className={row.gainLoss! >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          <TableCell className={row.gainLoss! >= 0 ? 'text-gain' : 'text-loss'}>
                             {row.gainLoss! >= 0 ? '+' : ''}${Math.abs(row.gainLoss!).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
-                          <TableCell className={(row.returnPct ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          <TableCell className={(row.returnPct ?? 0) >= 0 ? 'text-gain' : 'text-loss'}>
                             {(row.returnPct ?? 0) >= 0 ? '+' : ''}{(row.returnPct ?? 0).toFixed(2)}%
                           </TableCell>
                         </>

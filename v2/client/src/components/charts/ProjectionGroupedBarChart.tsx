@@ -1,12 +1,21 @@
 import { useRef, useEffect, useCallback } from 'react'
 import * as d3 from 'd3'
 import type { ProjectionChartMonth } from 'shared'
+import {
+  CHART_ACTUAL_COLOR,
+  CHART_PROJECTED_COLOR,
+  CHART_DIVIDER_COLOR,
+  CHART_GRID_COLOR,
+  CHART_AXIS_TEXT_COLOR,
+  CHART_TOOLTIP_BG,
+  CHART_TOOLTIP_TEXT,
+} from '@/lib/chartTheme'
 
 const MARGIN = { top: 20, right: 20, bottom: 60, left: 70 }
 const HEIGHT = 300
-const ACTUAL_COLOR = '#78A86A'   // gain green (works in both themes)
-const PROJECTED_COLOR = '#E8920A99' // marigold at ~60% opacity
-const DIVIDER_COLOR = '#7A7068'
+const ACTUAL_COLOR = CHART_ACTUAL_COLOR
+const PROJECTED_COLOR = CHART_PROJECTED_COLOR
+const DIVIDER_COLOR = CHART_DIVIDER_COLOR
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -67,7 +76,7 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
           .tickFormat(() => ''),
       )
       .call((axis) => axis.select('.domain').remove())
-      .call((axis) => axis.selectAll('line').attr('stroke', '#e5e7eb').attr('stroke-dasharray', '3,3'))
+      .call((axis) => axis.selectAll('line').attr('stroke', CHART_GRID_COLOR).attr('stroke-dasharray', '3,3'))
 
     // X axis
     g.append('g')
@@ -86,7 +95,7 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
         .attr('dx', '-0.4em')
         .attr('dy', '0.6em')
         .style('font-size', '11px')
-        .style('fill', '#6b7280'),
+        .style('fill', CHART_AXIS_TEXT_COLOR),
       )
       .call((axis) => axis.selectAll('line').remove())
 
@@ -95,7 +104,7 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
       .call(d3.axisLeft(y).ticks(5).tickFormat((v) => formatY(v as number)))
       .call((axis) => axis.select('.domain').remove())
       .call((axis) => axis.selectAll('line').remove())
-      .call((axis) => axis.selectAll('text').style('fill', '#6b7280').style('font-size', '12px'))
+      .call((axis) => axis.selectAll('text').style('fill', CHART_AXIS_TEXT_COLOR).style('font-size', '12px'))
 
     // "Today" divider between last past month (index 11) and first future month (index 12)
     const dividerIndex = 12
@@ -129,8 +138,8 @@ export function ProjectionGroupedBarChart({ chartData, onMonthClick }: Props) {
       .join('div')
       .attr('class', 'proj-chart-tooltip')
       .style('position', 'fixed')
-      .style('background', 'rgba(17,24,39,0.92)')
-      .style('color', '#f9fafb')
+      .style('background', CHART_TOOLTIP_BG)
+      .style('color', CHART_TOOLTIP_TEXT)
       .style('padding', '8px 12px')
       .style('border-radius', '6px')
       .style('font-size', '12px')

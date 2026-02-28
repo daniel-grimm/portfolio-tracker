@@ -1,20 +1,12 @@
 import { useRef, useEffect } from 'react'
 import * as d3 from 'd3'
 import type { TTMIncomeData } from 'shared'
+import { CHART_SERIES_COLORS, CHART_FALLBACK_COLOR } from '@/lib/chartTheme'
 
 const MARGIN = { top: 20, right: 20, bottom: 50, left: 70 }
 const HEIGHT = 260
 
-const ACCOUNT_COLORS = [
-  '#E8920A', // marigold
-  '#78A86A', // warm green
-  '#5A9AAC', // warm teal
-  '#D4724A', // terracotta
-  '#A06AB8', // warm purple
-  '#C8A040', // warm gold
-  '#6A8CC8', // slate blue
-  '#C86A7A', // dusty rose
-]
+const ACCOUNT_COLORS = CHART_SERIES_COLORS
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -105,7 +97,7 @@ export function IncomeBarChart({ data }: { data: TTMIncomeData }) {
           .attr('y', y1)
           .attr('width', bw)
           .attr('height', barHeight)
-          .attr('fill', colorMap.get(accountId) ?? '#6366f1')
+          .attr('fill', colorMap.get(accountId) ?? CHART_FALLBACK_COLOR)
           .attr('rx', 0)
           .on('mousemove', (event: MouseEvent) => {
             const containerRect = svgRef.current!.parentElement!.getBoundingClientRect()
@@ -118,7 +110,7 @@ export function IncomeBarChart({ data }: { data: TTMIncomeData }) {
                 (a) =>
                   `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11px">
                     <span style="display:flex;align-items:center;gap:4px">
-                      <span style="width:8px;height:8px;border-radius:2px;background:${colorMap.get(a.accountId) ?? '#6366f1'};display:inline-block;flex-shrink:0"></span>
+                      <span style="width:8px;height:8px;border-radius:2px;background:${colorMap.get(a.accountId) ?? CHART_FALLBACK_COLOR};display:inline-block;flex-shrink:0"></span>
                       ${a.accountName}
                     </span>
                     <span>$${a.income.toFixed(2)}</span>

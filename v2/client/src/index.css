@@ -60,53 +60,53 @@
     --font-mono:    'DM Mono', 'Fira Code', monospace;
 }
 
-/* ── Light mode — Warm Porcelain + Marigold ─────────────────────────────── */
+/* ── Light mode — Warm Amber + Marigold ─────────────────────────────────── */
 :root {
     --radius: 0.5rem;
 
     /* Shadcn standard vars */
-    --background:            #F5F0E8;
-    --foreground:            #3D3428;
-    --card:                  #FDFAF5;
-    --card-foreground:       #3D3428;
-    --popover:               #FFFFFF;
-    --popover-foreground:    #3D3428;
-    --primary:               #D4820A;
-    --primary-foreground:    #FDFAF5;
-    --secondary:             #EDE6D9;
-    --secondary-foreground:  #3D3428;
-    --muted:                 #EDE6D9;
-    --muted-foreground:      #8A7E6E;
-    --accent:                #FBF0DC;
-    --accent-foreground:     #D4820A;
-    --destructive:           #B84040;
-    --border:                #DDD5C4;
-    --input:                 #DDD5C4;
-    --ring:                  #D4820A66;
+    --background:            #EFE7D6;
+    --foreground:            #2E2418;
+    --card:                  #FAF5EA;
+    --card-foreground:       #2E2418;
+    --popover:               #FFFDF6;
+    --popover-foreground:    #2E2418;
+    --primary:               #C47808;
+    --primary-foreground:    #FFFDF6;
+    --secondary:             #E4D6BC;
+    --secondary-foreground:  #2E2418;
+    --muted:                 #E4D6BC;
+    --muted-foreground:      #7A6A52;
+    --accent:                #FDECC4;
+    --accent-foreground:     #9E5C00;
+    --destructive:           #C03838;
+    --border:                #C8B898;
+    --input:                 #C8B898;
+    --ring:                  #C4780866;
 
     /* Chart palette — warm tones */
-    --chart-1: #D4820A;
-    --chart-2: #4A8C3F;
-    --chart-3: #C25A2A;
-    --chart-4: #4A7A8C;
-    --chart-5: #8A5A9C;
+    --chart-1: #C47808;
+    --chart-2: #38882C;
+    --chart-3: #C44820;
+    --chart-4: #387A90;
+    --chart-5: #884898;
 
     /* Sidebar */
-    --sidebar:                       #EDE6D9;
-    --sidebar-foreground:            #3D3428;
-    --sidebar-primary:               #D4820A;
-    --sidebar-primary-foreground:    #FDFAF5;
-    --sidebar-accent:                #FBF0DC;
-    --sidebar-accent-foreground:     #D4820A;
-    --sidebar-border:                #DDD5C4;
-    --sidebar-ring:                  #D4820A66;
+    --sidebar:                       #E4D6BC;
+    --sidebar-foreground:            #2E2418;
+    --sidebar-primary:               #C47808;
+    --sidebar-primary-foreground:    #FFFDF6;
+    --sidebar-accent:                #FDECC4;
+    --sidebar-accent-foreground:     #9E5C00;
+    --sidebar-border:                #C8B898;
+    --sidebar-ring:                  #C4780866;
 
     /* Semantic extras */
-    --gain:         #4A8C3F;
-    --loss:         #B84040;
-    --gain-subtle:  #EBF5E9;
-    --loss-subtle:  #F9EDED;
-    --accent-subtle:#FBF0DC;
+    --gain:         #2E8828;
+    --loss:         #C03838;
+    --gain-subtle:  #D8F0D4;
+    --loss-subtle:  #F4D8D8;
+    --accent-subtle:#FDECC4;
 }
 
 /* ── Dark mode — Warm Graphite + Marigold ───────────────────────────────── */

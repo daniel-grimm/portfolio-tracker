@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getValueHistory } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ValueHistoryRange } from 'shared'
+import { CHART_GAIN_COLOR, CHART_LOSS_COLOR } from '@/lib/chartTheme'
 
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 75 }
 const HEIGHT = 280
@@ -141,7 +142,7 @@ export function PortfolioValueChart({ portfolioId }: { portfolioId: string }) {
 
         const gainLoss = d.totalValue - d.costBasis
         const sign = gainLoss >= 0 ? '+' : ''
-        const color = gainLoss >= 0 ? '#22c55e' : '#ef4444'
+        const color = gainLoss >= 0 ? CHART_GAIN_COLOR : CHART_LOSS_COLOR
         const cx = MARGIN.left + xScale(d.parsedDate)
         const cy = MARGIN.top + yScale(d.totalValue)
 

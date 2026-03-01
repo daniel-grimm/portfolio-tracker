@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import type { DbInstance } from '../db/index.js'
 import { dividends, accounts, portfolios } from '../db/schema.js'
 import { NotFoundError } from '../lib/errors.js'
@@ -105,6 +105,18 @@ export async function getAllDividendsForUser(
     .innerJoin(accounts, eq(dividends.accountId, accounts.id))
     .innerJoin(portfolios, eq(accounts.portfolioId, portfolios.id))
     .where(eq(portfolios.userId, userId))
+}
+
+export async function getActiveDividendsForUser(
+  db: DbInstance,
+  userId: string,
+): Promise<DividendWithAccount[]> {
+  return db
+    .select({ ...dividendColumns, accountName: accounts.name })
+    .from(dividends)
+    .innerJoin(accounts, eq(dividends.accountId, accounts.id))
+    .innerJoin(portfolios, eq(accounts.portfolioId, portfolios.id))
+    .where(and(eq(portfolios.userId, userId), isNull(accounts.disabledAt)))
 }
 
 export async function updateDividend(

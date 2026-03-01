@@ -17,6 +17,7 @@ vi.mock('../../server/src/services/accounts.js', () => ({
   createAccount: vi.fn(),
   updateAccount: vi.fn(),
   deleteAccount: vi.fn(),
+  disableAccount: vi.fn(),
 }))
 import {
   getAccountsForPortfolio,
@@ -24,6 +25,7 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  disableAccount,
 } from '../../server/src/services/accounts.js'
 
 import accountsRouter from '../../server/src/routes/accounts.js'
@@ -33,6 +35,7 @@ const mockAccount = {
   portfolioId: 'port-1',
   name: 'Roth IRA',
   description: null,
+  disabledAt: null,
   createdAt: new Date('2025-01-01'),
   updatedAt: new Date('2025-01-01'),
 }
@@ -76,6 +79,10 @@ describe('without authentication', () => {
 
   it('DELETE /accounts/:id returns 401', async () => {
     await request(unauthedApp()).delete('/api/v1/accounts/acct-1').expect(401)
+  })
+
+  it('POST /accounts/:id/disable returns 401', async () => {
+    await request(unauthedApp()).post('/api/v1/accounts/acct-1/disable').expect(401)
   })
 })
 
@@ -187,5 +194,25 @@ describe('DELETE /api/v1/accounts/:id', () => {
     const { NotFoundError } = await import('../../server/src/lib/errors.js')
     vi.mocked(deleteAccount).mockRejectedValue(new NotFoundError('not found'))
     await request(authedApp()).delete('/api/v1/accounts/missing').expect(404)
+  })
+})
+
+describe('POST /api/v1/accounts/:id/disable', () => {
+  beforeEach(() => {
+    mockedRequireAuth.mockImplementation((_req: Request, _res: Response, next: NextFunction) =>
+      next(),
+    )
+    vi.mocked(disableAccount).mockResolvedValue({ ...mockAccount, disabledAt: new Date() })
+  })
+
+  it('returns 200 with disabled account', async () => {
+    const res = await request(authedApp()).post('/api/v1/accounts/acct-1/disable').expect(200)
+    expect(res.body.data.id).toBe('acct-1')
+  })
+
+  it('returns 404 on NotFoundError', async () => {
+    const { NotFoundError } = await import('../../server/src/lib/errors.js')
+    vi.mocked(disableAccount).mockRejectedValue(new NotFoundError('not found'))
+    await request(authedApp()).post('/api/v1/accounts/missing/disable').expect(404)
   })
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { createTestDb, withTestTransaction, type TestDb } from '../helpers/db.js'
 import { createPortfolio } from '../../server/src/services/portfolios.js'
-import { createAccount } from '../../server/src/services/accounts.js'
+import { createAccount, disableAccount } from '../../server/src/services/accounts.js'
 import { createHolding } from '../../server/src/services/holdings.js'
 import { savePrices } from '../../server/src/services/prices.js'
 import {
@@ -101,6 +101,42 @@ describe('computePortfolioSnapshot', () => {
       await expect(computePortfolioSnapshot(db, p.id, 'user-2')).rejects.toBeInstanceOf(
         NotFoundError,
       )
+    })
+  })
+
+  it('excludes holdings from disabled accounts', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const active = await createAccount(db, p.id, 'user-1', { name: 'Active' })
+      const disabled = await createAccount(db, p.id, 'user-1', { name: 'Disabled' })
+
+      // Active account: 10 shares of SNAP_ACT @ cost $100, price $200 → value $2000
+      await createHolding(db, active.id, 'user-1', {
+        ticker: 'SNAP_ACT',
+        shares: '10',
+        avgCostBasis: '100',
+        purchaseDate: '2024-01-01',
+      })
+      // Disabled account: 5 shares of SNAP_DIS @ cost $200, price $300 → value $1500 if included
+      await createHolding(db, disabled.id, 'user-1', {
+        ticker: 'SNAP_DIS',
+        shares: '5',
+        avgCostBasis: '200',
+        purchaseDate: '2024-01-01',
+      })
+
+      await savePrices(db, [
+        { ticker: 'SNAP_ACT', date: today, closePrice: '200' },
+        { ticker: 'SNAP_DIS', date: today, closePrice: '300' },
+      ])
+
+      await disableAccount(db, disabled.id, 'user-1')
+
+      const snapshot = await computePortfolioSnapshot(db, p.id, 'user-1')
+      // Only active account: 10 * $200 = $2000
+      expect(Number(snapshot.totalValue)).toBeCloseTo(2000)
+      expect(Number(snapshot.costBasis)).toBeCloseTo(1000) // 10 * $100
+      expect(snapshot.isPartial).toBe(false)
     })
   })
 })

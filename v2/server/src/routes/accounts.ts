@@ -9,6 +9,7 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  disableAccount,
 } from '../services/accounts.js'
 import { db } from '../db/index.js'
 
@@ -86,6 +87,16 @@ router.delete(
     const userId = req.user!.id
     await deleteAccount(db, req.params['id'] as string, userId)
     res.json({ data: null })
+  }),
+)
+
+router.post(
+  '/accounts/:id/disable',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id
+    const account = await disableAccount(db, req.params['id'] as string, userId)
+    res.json({ data: account })
   }),
 )
 

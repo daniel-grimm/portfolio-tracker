@@ -7,9 +7,11 @@ import {
   getDividendsForAccount,
   getDividendsForPortfolio,
   getAllDividendsForUser,
+  getActiveDividendsForUser,
   updateDividend,
   deleteDividend,
 } from '../../server/src/services/dividends.js'
+import { disableAccount } from '../../server/src/services/accounts.js'
 import { NotFoundError } from '../../server/src/lib/errors.js'
 
 let testDb: TestDb
@@ -205,6 +207,45 @@ describe('getAllDividendsForUser', () => {
   it('returns empty array for user with no dividends', async () => {
     await withTestTransaction(testDb, async (db) => {
       const result = await getAllDividendsForUser(db, 'no-dividends-user')
+      expect(result).toEqual([])
+    })
+  })
+})
+
+// ── getActiveDividendsForUser ──────────────────────────────────────────────────
+
+describe('getActiveDividendsForUser', () => {
+  it('excludes dividends from disabled accounts', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const active = await createAccount(db, p.id, 'user-1', { name: 'Active' })
+      const disabled = await createAccount(db, p.id, 'user-1', { name: 'Disabled' })
+
+      await createDividend(db, active.id, 'user-1', { ...baseDividend, ticker: 'AAPL' })
+      await createDividend(db, disabled.id, 'user-1', { ...baseDividend, ticker: 'MSFT' })
+
+      await disableAccount(db, disabled.id, 'user-1')
+
+      const result = await getActiveDividendsForUser(db, 'user-1')
+      expect(result).toHaveLength(1)
+      expect(result[0].ticker).toBe('AAPL')
+    })
+  })
+
+  it('includes paid dividends from active accounts', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const a = await createAccount(db, p.id, 'user-1', { name: 'Active' })
+      await createDividend(db, a.id, 'user-1', { ...baseDividend, ticker: 'VTI' })
+
+      const result = await getActiveDividendsForUser(db, 'user-1')
+      expect(result).toHaveLength(1)
+    })
+  })
+
+  it('returns empty array for user with no active dividends', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const result = await getActiveDividendsForUser(db, 'no-active-user')
       expect(result).toEqual([])
     })
   })

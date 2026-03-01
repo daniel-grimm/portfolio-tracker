@@ -17,6 +17,7 @@ export type Account = {
   portfolioId: string
   name: string
   description: string | null
+  disabledAt: Date | null
   createdAt: Date
   updatedAt: Date
 }

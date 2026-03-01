@@ -1,4 +1,4 @@
-import { eq, and, gte, asc } from 'drizzle-orm'
+import { eq, and, gte, asc, isNull } from 'drizzle-orm'
 import type { DbInstance } from '../db/index.js'
 import { portfolioValueHistory, holdings, accounts } from '../db/schema.js'
 import { getPortfolioById } from './portfolios.js'
@@ -35,7 +35,7 @@ export async function computePortfolioSnapshot(
     .select(holdingColumns)
     .from(holdings)
     .innerJoin(accounts, eq(holdings.accountId, accounts.id))
-    .where(eq(accounts.portfolioId, portfolioId))
+    .where(and(eq(accounts.portfolioId, portfolioId), isNull(accounts.disabledAt)))
 
   if (portfolioHoldings.length === 0) {
     return { totalValue: '0', costBasis: '0', isPartial: false }

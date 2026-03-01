@@ -13,10 +13,10 @@ const mockedRequireAuth = vi.mocked(requireAuth)
 vi.mock('../../server/src/db/index.js', () => ({ db: {} }))
 
 vi.mock('../../server/src/services/dividends.js', () => ({
-  getAllDividendsForUser: vi.fn(),
+  getActiveDividendsForUser: vi.fn(),
 }))
-import { getAllDividendsForUser } from '../../server/src/services/dividends.js'
-const mockedGetAll = vi.mocked(getAllDividendsForUser)
+import { getActiveDividendsForUser } from '../../server/src/services/dividends.js'
+const mockedGetAll = vi.mocked(getActiveDividendsForUser)
 
 import projectionsRouter from '../../server/src/routes/projections.js'
 

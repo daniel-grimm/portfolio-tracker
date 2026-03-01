@@ -46,6 +46,7 @@ export const accounts = pgTable(
       .references(() => portfolios.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     description: text('description'),
+    disabledAt: timestamp('disabled_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

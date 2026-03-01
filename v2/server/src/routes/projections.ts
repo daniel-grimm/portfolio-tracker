@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { db } from '../db/index.js'
 import { requireAuth } from '../middleware/auth.js'
 import { asyncHandler } from '../lib/asyncHandler.js'
-import { getAllDividendsForUser } from '../services/dividends.js'
+import { getActiveDividendsForUser } from '../services/dividends.js'
 import {
   buildChartData,
   buildHoldingProjections,
@@ -16,7 +16,7 @@ router.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const userId = (req as typeof req & { user: { id: string } }).user.id
-    const dividends = await getAllDividendsForUser(db, userId)
+    const dividends = await getActiveDividendsForUser(db, userId)
     const today = new Date()
 
     const chartData = buildChartData(dividends, today)

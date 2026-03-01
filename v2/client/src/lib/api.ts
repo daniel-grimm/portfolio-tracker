@@ -98,6 +98,10 @@ export function deleteAccount(id: string): Promise<null> {
   return request<null>(`/api/v1/accounts/${id}`, { method: 'DELETE' })
 }
 
+export function disableAccount(id: string): Promise<Account> {
+  return request<Account>(`/api/v1/accounts/${id}/disable`, { method: 'POST' })
+}
+
 // Holdings
 
 export function getHoldings(accountId: string): Promise<Holding[]> {

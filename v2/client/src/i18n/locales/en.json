@@ -57,7 +57,11 @@
     "namePlaceholder": "e.g. Roth IRA",
     "noAccounts": "No accounts yet. Add one to start tracking holdings.",
     "notFound": "Account not found.",
-    "deleteConfirm": "Are you sure you want to delete <strong>{{name}}</strong>? All holdings and dividends in this account will also be deleted. This action cannot be undone."
+    "deleteConfirm": "Are you sure you want to delete <strong>{{name}}</strong>? All holdings and dividends in this account will also be deleted. This action cannot be undone.",
+    "disableAccount": "Disable Account",
+    "disabling": "Disabling…",
+    "disabled": "Disabled",
+    "disableConfirm": "Are you sure you want to disable <strong>{{name}}</strong>? This account will no longer contribute to portfolio value or income projections going forward. Scheduled and projected dividends will be deleted. Paid dividend history is preserved. This action cannot be undone."
   },
   "holding": {
     "holding": "Holding",

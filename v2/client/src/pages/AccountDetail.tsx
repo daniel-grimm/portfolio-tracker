@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -10,10 +10,21 @@ import {
   createHolding,
   getLatestPrice,
   getDividendsForAccount,
+  disableAccount,
 } from '@/lib/api'
 import { CsvImportModal } from '@/components/CsvImportModal'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Dialog,
   DialogContent,
@@ -133,6 +144,7 @@ export function AccountDetail() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const qc = useQueryClient()
+  const navigate = useNavigate()
 
   const { data: account, isPending: accountPending, isError } = useQuery({
     queryKey: ['accounts', id],
@@ -230,6 +242,7 @@ export function AccountDetail() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [disableOpen, setDisableOpen] = useState(false)
 
   const handleImported = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ['holdings', id] })
@@ -242,6 +255,15 @@ export function AccountDetail() {
       void qc.invalidateQueries({ queryKey: ['holdings', id] })
       void qc.invalidateQueries({ queryKey: ['allHoldings'] })
       setCreateOpen(false)
+    },
+  })
+
+  const disableMutation = useMutation({
+    mutationFn: () => disableAccount(id!),
+    onSuccess: (disabled) => {
+      void qc.invalidateQueries({ queryKey: ['accounts', id] })
+      void qc.invalidateQueries({ queryKey: ['accounts'] })
+      void navigate(`/portfolios/${disabled.portfolioId}`)
     },
   })
 
@@ -293,10 +315,29 @@ export function AccountDetail() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{account.name}</h1>
-        {account.description && (
-          <p className="text-muted-foreground mt-1">{account.description}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{account.name}</h1>
+            {account.disabledAt && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                {t('account.disabled')}
+              </span>
+            )}
+          </div>
+          {account.description && (
+            <p className="text-muted-foreground mt-1">{account.description}</p>
+          )}
+        </div>
+        {!account.disabledAt && (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setDisableOpen(true)}
+            disabled={disableMutation.isPending}
+          >
+            {disableMutation.isPending ? t('account.disabling') : t('account.disableAccount')}
+          </Button>
         )}
       </div>
 
@@ -454,6 +495,28 @@ export function AccountDetail() {
           onImported={handleImported}
         />
       )}
+
+      <AlertDialog open={disableOpen} onOpenChange={setDisableOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('account.disableAccount')}</AlertDialogTitle>
+            <AlertDialogDescription
+              dangerouslySetInnerHTML={{
+                __html: t('account.disableConfirm', { name: account.name }),
+              }}
+            />
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => disableMutation.mutate()}
+            >
+              {t('account.disableAccount')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

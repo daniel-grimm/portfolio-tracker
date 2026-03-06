@@ -43,6 +43,13 @@
       "when": 1772100000000,
       "tag": "0005_account_disabled_at",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772200000000,
+      "tag": "0006_dividend_nullable_actuals",
+      "breakpoints": true
     }
   ]
 }

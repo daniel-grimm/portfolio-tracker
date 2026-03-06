@@ -22,6 +22,8 @@ export type Account = {
   updatedAt: Date
 }
 
+export type AccountWithPortfolio = Account & { portfolioName: string }
+
 export type DividendStatus = 'scheduled' | 'projected' | 'paid'
 
 export type Holding = {
@@ -39,8 +41,8 @@ export type Dividend = {
   id: string
   accountId: string
   ticker: string
-  amountPerShare: string
-  totalAmount: string
+  amountPerShare: string | null
+  totalAmount: string | null
   payDate: string
   projectedPerShare: string | null
   projectedPayout: string | null
@@ -144,8 +146,8 @@ export type AggregatedHolding = {
 
 export type CreateDividendInput = {
   ticker: string
-  amountPerShare: string
-  totalAmount: string
+  amountPerShare?: string | null
+  totalAmount?: string | null
   payDate: string
   projectedPerShare?: string | null
   projectedPayout?: string | null
@@ -153,8 +155,8 @@ export type CreateDividendInput = {
 }
 
 export type UpdateDividendInput = {
-  amountPerShare?: string
-  totalAmount?: string
+  amountPerShare?: string | null
+  totalAmount?: string | null
   payDate?: string
   projectedPerShare?: string | null
   projectedPayout?: string | null

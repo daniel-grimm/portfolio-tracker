@@ -12,6 +12,7 @@ import { requireAuth } from '../../server/src/middleware/auth.js'
 const mockedRequireAuth = vi.mocked(requireAuth)
 
 vi.mock('../../server/src/services/accounts.js', () => ({
+  getAllAccountsForUser: vi.fn(),
   getAccountsForPortfolio: vi.fn(),
   getAccountById: vi.fn(),
   createAccount: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('../../server/src/services/accounts.js', () => ({
   disableAccount: vi.fn(),
 }))
 import {
+  getAllAccountsForUser,
   getAccountsForPortfolio,
   getAccountById,
   createAccount,
@@ -61,6 +63,10 @@ describe('without authentication', () => {
     })
   })
 
+  it('GET /accounts returns 401', async () => {
+    await request(unauthedApp()).get('/api/v1/accounts').expect(401)
+  })
+
   it('GET /portfolios/:id/accounts returns 401', async () => {
     await request(unauthedApp()).get('/api/v1/portfolios/port-1/accounts').expect(401)
   })
@@ -87,6 +93,24 @@ describe('without authentication', () => {
 })
 
 // ── authenticated routes ──────────────────────────────────────────────────────
+
+describe('GET /api/v1/accounts', () => {
+  beforeEach(() => {
+    mockedRequireAuth.mockImplementation((_req: Request, _res: Response, next: NextFunction) =>
+      next(),
+    )
+    vi.mocked(getAllAccountsForUser).mockResolvedValue([
+      { ...mockAccount, portfolioName: 'Retirement' },
+    ])
+  })
+
+  it('returns 200 with data array including portfolioName', async () => {
+    const res = await request(authedApp()).get('/api/v1/accounts').expect(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].id).toBe('acct-1')
+    expect(res.body.data[0].portfolioName).toBe('Retirement')
+  })
+})
 
 describe('GET /api/v1/portfolios/:id/accounts', () => {
   beforeEach(() => {

@@ -96,7 +96,7 @@ export function Dashboard() {
         .reduce(
           (acc, d) => {
             const prev = acc.get(d.ticker) ?? 0
-            acc.set(d.ticker, prev + parseFloat(d.totalAmount))
+            acc.set(d.ticker, prev + parseFloat(d.totalAmount ?? '0'))
             return acc
           },
           new Map<string, number>(),

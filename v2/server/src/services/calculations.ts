@@ -12,13 +12,13 @@ export function calculateYTDIncome(dividends: Dividend[]): number {
       (d) =>
         d.status === 'paid' && new Date(d.payDate).getFullYear() === currentYear,
     )
-    .reduce((sum, d) => sum + parseFloat(d.totalAmount), 0)
+    .reduce((sum, d) => sum + parseFloat(d.totalAmount ?? '0'), 0)
 }
 
 export function calculateAllTimeIncome(dividends: Dividend[]): number {
   return dividends
     .filter((d) => d.status === 'paid')
-    .reduce((sum, d) => sum + parseFloat(d.totalAmount), 0)
+    .reduce((sum, d) => sum + parseFloat(d.totalAmount ?? '0'), 0)
 }
 
 export function calculateAnnualizedIncome(dividends: Dividend[]): number {
@@ -26,7 +26,7 @@ export function calculateAnnualizedIncome(dividends: Dividend[]): number {
   const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
   return dividends
     .filter((d) => d.status === 'paid' && new Date(d.payDate) >= oneYearAgo)
-    .reduce((sum, d) => sum + parseFloat(d.totalAmount), 0)
+    .reduce((sum, d) => sum + parseFloat(d.totalAmount ?? '0'), 0)
 }
 
 export function calculateUnrealizedGainLoss(

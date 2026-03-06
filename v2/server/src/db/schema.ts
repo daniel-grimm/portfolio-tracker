@@ -78,8 +78,8 @@ export const dividends = pgTable(
       .notNull()
       .references(() => accounts.id, { onDelete: 'cascade' }),
     ticker: text('ticker').notNull(),
-    amountPerShare: numeric('amount_per_share', { precision: 18, scale: 6 }).notNull(),
-    totalAmount: numeric('total_amount', { precision: 18, scale: 6 }).notNull(),
+    amountPerShare: numeric('amount_per_share', { precision: 18, scale: 6 }),
+    totalAmount: numeric('total_amount', { precision: 18, scale: 6 }),
     payDate: date('pay_date').notNull(),
     projectedPerShare: numeric('projected_per_share', { precision: 18, scale: 6 }),
     projectedPayout: numeric('projected_payout', { precision: 18, scale: 6 }),

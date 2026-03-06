@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { getProjections } from '@/lib/api'
+import { getProjections, getDashboardCalendar } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -23,10 +23,22 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ProjectionGroupedBarChart } from '@/components/charts/ProjectionGroupedBarChart'
-import type { ProjectionsResponse, ProjectionChartMonth, HoldingProjection } from 'shared'
+import type { ProjectionsResponse, ProjectionChartMonth, HoldingProjection, DividendWithAccount } from 'shared'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,72 +55,260 @@ function fmt(v: number): string {
   })
 }
 
-function fmtPct(v: number): string {
-  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
-}
-
 // ── Stat Cards ────────────────────────────────────────────────────────────────
 
 function ProjectionStatCards({ data }: { data: ProjectionsResponse }) {
   const { t } = useTranslation()
-  const { ttmIncome, projectedAnnual, trend, trendPct } = data
-
-  const trendColor =
-    trendPct > 1
-      ? 'text-gain'
-      : trendPct < -1
-        ? 'text-loss'
-        : 'text-muted-foreground'
-  const TrendIcon = trendPct > 1 ? TrendingUp : trendPct < -1 ? TrendingDown : Minus
+  const { projectedAnnual } = data
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            {t('projections.ttmIncome')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{fmt(ttmIncome)}</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t('projections.monthlyAvg', { amount: fmt(ttmIncome / 12) })}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {t('projections.projectedNext12')}
+            {t('projections.projectedAnnual')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{fmt(projectedAnnual)}</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t('projections.monthlyAvg', { amount: fmt(projectedAnnual / 12) })}
-          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            {t('projections.trend')}
+            {t('dividend.monthlyAvg')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold flex items-center gap-2 ${trendColor}`}>
-            <TrendIcon className="h-5 w-5" />
-            {trend >= 0 ? '+' : ''}
-            {fmt(trend)}
-          </div>
-          <p className={`text-xs mt-1 ${trendColor}`}>
-            {fmtPct(trendPct)} {t('projections.vsLastYear')}
-          </p>
+          <div className="text-2xl font-bold">{fmt(projectedAnnual / 12)}</div>
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// ── Calendar: DayCell ─────────────────────────────────────────────────────────
+
+function DayCell({
+  day,
+  dividends,
+  monthName,
+}: {
+  day: number | null
+  dividends: DividendWithAccount[]
+  monthName: string
+}) {
+  const { t } = useTranslation()
+  const hasDivs = dividends.length > 0
+  const allProjected = hasDivs && dividends.every((d) => d.status === 'projected')
+
+  if (!day) return <div className="min-h-[72px] rounded-md" />
+
+  const cellBg = !hasDivs
+    ? ''
+    : allProjected
+      ? 'border-amber-500/30 bg-amber-500/5'
+      : 'border-primary/30 bg-primary/5'
+
+  const total = dividends.reduce((sum, d) => {
+    const amt =
+      d.status === 'projected' && d.projectedPayout
+        ? parseFloat(d.projectedPayout)
+        : parseFloat(d.totalAmount ?? '0')
+    return sum + amt
+  }, 0)
+  const chipLabel = allProjected ? `~$${total.toFixed(2)}` : `$${total.toFixed(2)}`
+  const chipColor = allProjected ? 'bg-primary' : 'bg-gain'
+
+  const content = (
+    <div className={`min-h-[72px] rounded-md border p-1.5 text-sm flex flex-col gap-1 ${cellBg}`}>
+      <span className="text-xs font-medium text-muted-foreground">{day}</span>
+      {hasDivs && (
+        <div
+          className={`flex items-center justify-center rounded px-1 py-0.5 text-[10px] text-white font-medium ${chipColor}`}
+        >
+          {chipLabel}
+        </div>
+      )}
+    </div>
+  )
+
+  if (!hasDivs) return content
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="w-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md">
+          {content}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" side="top">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">
+            {monthName} {day}
+          </p>
+          <div className="space-y-1">
+            {dividends.map((d) => {
+              const isProjected = d.status === 'projected'
+              const amount =
+                isProjected && d.projectedPayout
+                  ? t('dividend.projectedAmount', { amount: `$${parseFloat(d.projectedPayout).toFixed(2)}` })
+                  : `$${parseFloat(d.totalAmount ?? '0').toFixed(2)}`
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between text-sm py-1.5 border-b last:border-0"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{d.ticker}</span>
+                    <span className="text-xs text-muted-foreground">{d.accountName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        isProjected
+                          ? 'bg-accent text-accent-foreground'
+                          : 'bg-gain-subtle text-gain'
+                      }`}
+                    >
+                      {isProjected ? t('dividend.statusProjected') : t('dividend.statusPaid')}
+                    </span>
+                    <span className="font-medium tabular-nums">{amount}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+// ── Calendar Section ──────────────────────────────────────────────────────────
+
+function DividendCalendar() {
+  const { t } = useTranslation()
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [selectedAccount, setSelectedAccount] = useState('')
+
+  const MONTH_NAMES = t('calendar.months', { returnObjects: true }) as string[]
+  const DAY_LABELS = t('calendar.days', { returnObjects: true }) as string[]
+
+  const { data: calendarDays, isPending: calendarPending } = useQuery({
+    queryKey: ['dashboardCalendar', year, month],
+    queryFn: () => getDashboardCalendar(year, month),
+  })
+
+  useEffect(() => {
+    setSelectedAccount('')
+  }, [year, month])
+
+  function navigateMonth(delta: number) {
+    let y = year
+    let m = month + delta
+    if (m > 12) { m = 1; y++ }
+    if (m < 1) { m = 12; y-- }
+    setYear(y)
+    setMonth(m)
+  }
+
+  const monthName = MONTH_NAMES[month - 1]
+  const hasEvents = (calendarDays?.length ?? 0) > 0
+
+  const accountOptions = useMemo(() => {
+    if (!calendarDays) return []
+    const names = new Set<string>()
+    for (const entry of calendarDays) {
+      for (const d of entry.dividends) names.add(d.accountName)
+    }
+    return Array.from(names).sort()
+  }, [calendarDays])
+
+  const dividendsByDay = new Map<number, DividendWithAccount[]>()
+  for (const entry of calendarDays ?? []) {
+    const day = parseInt(entry.date.split('-')[2])
+    const filtered =
+      selectedAccount ? entry.dividends.filter((d) => d.accountName === selectedAccount) : entry.dividends
+    if (filtered.length > 0) dividendsByDay.set(day, filtered)
+  }
+  const firstDow = new Date(year, month - 1, 1).getDay()
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const cells: Array<number | null> = Array(firstDow).fill(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('calendar.dividendCalendar')}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigateMonth(-1)}>
+              {t('calendar.prev')}
+            </Button>
+            <span className="text-sm font-medium w-36 text-center">
+              {monthName} {year}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => navigateMonth(1)}>
+              {t('calendar.next')}
+            </Button>
+          </div>
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-gain inline-block" /> {t('calendar.paid')}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> {t('calendar.projected')}
+            </span>
+          </div>
+        </div>
+
+        {hasEvents && (
+          <div className="flex items-center gap-2">
+            <Select value={selectedAccount || 'all'} onValueChange={(v) => setSelectedAccount(v === 'all' ? '' : v)}>
+              <SelectTrigger className="w-52 h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('calendar.allAccounts')}</SelectItem>
+                {accountOptions.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="grid grid-cols-7 gap-1">
+          {DAY_LABELS.map((label) => (
+            <div key={label} className="text-center text-xs font-medium text-muted-foreground py-1">
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {calendarPending ? (
+          <Skeleton className="rounded-xl" style={{ height: 400 }} />
+        ) : (
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((day, idx) => (
+              <DayCell
+                key={idx}
+                day={day}
+                dividends={day ? (dividendsByDay.get(day) ?? []) : []}
+                monthName={monthName ?? ''}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -372,12 +572,13 @@ export function Projections() {
     return (
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">{t('projections.projections')}</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[0, 1].map((i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
         <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-96 rounded-xl" />
         <Skeleton className="h-64 rounded-xl" />
       </div>
     )
@@ -421,6 +622,8 @@ export function Projections() {
           )}
         </CardContent>
       </Card>
+
+      <DividendCalendar />
 
       <HoldingBreakdownTable projections={data.holdingProjections} excluded={data.excluded} />
 

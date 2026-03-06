@@ -132,18 +132,18 @@ describe('POST /api/v1/accounts/:id/dividends', () => {
       .expect(400)
   })
 
-  it('returns 400 on missing amountPerShare', async () => {
+  it('returns 201 without amountPerShare (allowed for projected)', async () => {
     await request(authedApp())
       .post('/api/v1/accounts/acct-1/dividends')
       .send({ ticker: 'AAPL', totalAmount: '5.00', payDate: '2024-01-15' })
-      .expect(400)
+      .expect(201)
   })
 
-  it('returns 400 on missing totalAmount', async () => {
+  it('returns 201 without totalAmount (allowed for projected)', async () => {
     await request(authedApp())
       .post('/api/v1/accounts/acct-1/dividends')
       .send({ ticker: 'AAPL', amountPerShare: '0.50', payDate: '2024-01-15' })
-      .expect(400)
+      .expect(201)
   })
 
   it('returns 400 on missing payDate', async () => {

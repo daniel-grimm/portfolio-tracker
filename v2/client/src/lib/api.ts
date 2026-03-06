@@ -3,6 +3,7 @@ import type {
   CreatePortfolioInput,
   UpdatePortfolioInput,
   Account,
+  AccountWithPortfolio,
   CreateAccountInput,
   UpdateAccountInput,
   Holding,
@@ -71,6 +72,10 @@ export function deletePortfolio(id: string): Promise<null> {
 }
 
 // Accounts
+
+export function getAllAccounts(): Promise<AccountWithPortfolio[]> {
+  return request<AccountWithPortfolio[]>('/api/v1/accounts')
+}
 
 export function getAccounts(portfolioId: string): Promise<Account[]> {
   return request<Account[]>(`/api/v1/portfolios/${portfolioId}/accounts`)

@@ -75,7 +75,7 @@ export function projectMonthlyIncome(
     const cadenceMonths = cadence === 'monthly' ? 1 : cadence === 'quarterly' ? 3 : 12
 
     const lastPaid = paid[paid.length - 1]
-    const lastAmount = parseFloat(lastPaid.totalAmount)
+    const lastAmount = parseFloat(lastPaid.totalAmount ?? '0')
     const { year: lastYear, month: lastMonth } = parseYearMonth(lastPaid.payDate)
     const lastAbsMonth = lastYear * 12 + (lastMonth - 1)
 
@@ -115,20 +115,20 @@ export function blendedProjectionAmount(dividends: Dividend[]): number {
     .sort((a, b) => a.payDate.localeCompare(b.payDate))
 
   if (paid.length === 0) return 0
-  if (paid.length === 1) return parseFloat(paid[0].totalAmount)
+  if (paid.length === 1) return parseFloat(paid[0].totalAmount ?? '0')
 
   // Fallback: if fewer than 2 payouts in the last 12 months, use last paid amount
   const now = new Date()
   const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
   const recentCount = paid.filter((d) => new Date(d.payDate) >= twelveMonthsAgo).length
   if (recentCount < 2) {
-    return parseFloat(paid[paid.length - 1].totalAmount)
+    return parseFloat(paid[paid.length - 1].totalAmount ?? '0')
   }
 
   // Recent average: last 3–4 paid dividends
   const lastFour = paid.slice(-4)
   const recentAvg =
-    lastFour.reduce((sum, d) => sum + parseFloat(d.totalAmount), 0) / lastFour.length
+    lastFour.reduce((sum, d) => sum + parseFloat(d.totalAmount ?? '0'), 0) / lastFour.length
 
   // YoY growth: compare most recent payment to payment ~1 year ago (±60 days)
   const mostRecent = paid[paid.length - 1]
@@ -149,10 +149,10 @@ export function blendedProjectionAmount(dividends: Dividend[]): number {
       : best,
   )
 
-  const yearAgoAmount = parseFloat(yearAgoPmt.totalAmount)
+  const yearAgoAmount = parseFloat(yearAgoPmt.totalAmount ?? '0')
   if (yearAgoAmount === 0) return recentAvg
 
-  const rawGrowth = (parseFloat(mostRecent.totalAmount) - yearAgoAmount) / yearAgoAmount
+  const rawGrowth = (parseFloat(mostRecent.totalAmount ?? '0') - yearAgoAmount) / yearAgoAmount
   const cappedGrowth = Math.max(-0.3, Math.min(0.3, rawGrowth))
 
   return recentAvg * (1 + cappedGrowth * 0.5)
@@ -195,11 +195,11 @@ export function buildChartData(dividends: DividendWithAccount[], today: Date): P
     const { year: y, month: m } = parseYearMonth(d.payDate)
     const slot = slots.find((s) => s.year === y && s.month === m && s.isPast)
     if (slot) {
-      slot.actual = (slot.actual ?? 0) + parseFloat(d.totalAmount)
+      slot.actual = (slot.actual ?? 0) + parseFloat(d.totalAmount ?? '0')
       slot.detail.push({
         ticker: d.ticker,
         accountName: d.accountName,
-        amount: parseFloat(d.totalAmount),
+        amount: parseFloat(d.totalAmount ?? '0'),
         status: 'paid',
       })
     }
@@ -230,7 +230,7 @@ export function buildChartData(dividends: DividendWithAccount[], today: Date): P
       if (d.status === 'scheduled' || d.status === 'projected') {
         const { year: dy, month: dm } = parseYearMonth(d.payDate)
         const k = `${dy}-${dm}`
-        existingScheduled.set(k, (existingScheduled.get(k) ?? 0) + parseFloat(d.totalAmount))
+        existingScheduled.set(k, (existingScheduled.get(k) ?? 0) + parseFloat(d.projectedPayout ?? d.totalAmount ?? '0'))
       }
     }
 
@@ -271,7 +271,7 @@ export function buildChartData(dividends: DividendWithAccount[], today: Date): P
         const diff = slotAbsMonth - lastBeforeAbsMonth
 
         if (diff > 0 && diff % cadenceMonthsBefore === 0) {
-          slot.projected += parseFloat(lastBefore.totalAmount)
+          slot.projected += parseFloat(lastBefore.totalAmount ?? '0')
           // Past projected detail: mark as 'projected' for model accuracy display
           const existing = slot.detail.find(
             (d) => d.ticker === ticker && d.accountName === accountName && d.status === 'paid',
@@ -280,7 +280,7 @@ export function buildChartData(dividends: DividendWithAccount[], today: Date): P
             slot.detail.push({
               ticker,
               accountName,
-              amount: parseFloat(lastBefore.totalAmount),
+              amount: parseFloat(lastBefore.totalAmount ?? '0'),
               status: 'projected',
             })
           }
@@ -337,7 +337,7 @@ export function buildHoldingProjections(
       if (d.status === 'scheduled' || d.status === 'projected') {
         const { year: dy, month: dm } = parseYearMonth(d.payDate)
         const k = `${dy}-${dm}`
-        existingScheduled.set(k, (existingScheduled.get(k) ?? 0) + parseFloat(d.totalAmount))
+        existingScheduled.set(k, (existingScheduled.get(k) ?? 0) + parseFloat(d.projectedPayout ?? d.totalAmount ?? '0'))
       }
     }
 

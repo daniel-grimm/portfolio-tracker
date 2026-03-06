@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { NotFoundError } from '../lib/errors.js'
 import {
+  getAllAccountsForUser,
   getAccountsForPortfolio,
   getAccountById,
   createAccount,
@@ -24,6 +25,16 @@ const UpdateAccountSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
 })
+
+router.get(
+  '/accounts',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id
+    const result = await getAllAccountsForUser(db, userId)
+    res.json({ data: result })
+  }),
+)
 
 router.get(
   '/portfolios/:portfolioId/accounts',

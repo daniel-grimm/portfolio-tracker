@@ -3,7 +3,7 @@ import type { DbInstance } from '../db/index.js'
 import { accounts, portfolios, dividends } from '../db/schema.js'
 import { NotFoundError } from '../lib/errors.js'
 import { getPortfolioById } from './portfolios.js'
-import type { Account, CreateAccountInput, UpdateAccountInput } from 'shared'
+import type { Account, AccountWithPortfolio, CreateAccountInput, UpdateAccountInput } from 'shared'
 
 const accountColumns = {
   id: accounts.id,
@@ -13,6 +13,26 @@ const accountColumns = {
   disabledAt: accounts.disabledAt,
   createdAt: accounts.createdAt,
   updatedAt: accounts.updatedAt,
+}
+
+export async function getAllAccountsForUser(
+  db: DbInstance,
+  userId: string,
+): Promise<AccountWithPortfolio[]> {
+  return db
+    .select({
+      id: accounts.id,
+      portfolioId: accounts.portfolioId,
+      portfolioName: portfolios.name,
+      name: accounts.name,
+      description: accounts.description,
+      disabledAt: accounts.disabledAt,
+      createdAt: accounts.createdAt,
+      updatedAt: accounts.updatedAt,
+    })
+    .from(accounts)
+    .innerJoin(portfolios, eq(accounts.portfolioId, portfolios.id))
+    .where(and(eq(portfolios.userId, userId), isNull(accounts.disabledAt)))
 }
 
 export async function getAccountsForPortfolio(

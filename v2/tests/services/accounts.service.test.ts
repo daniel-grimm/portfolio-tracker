@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { createTestDb, withTestTransaction, type TestDb } from '../helpers/db.js'
 import { createPortfolio } from '../../server/src/services/portfolios.js'
 import {
+  getAllAccountsForUser,
   getAccountsForPortfolio,
   getAccountById,
   createAccount,
@@ -20,6 +21,51 @@ beforeAll(async () => {
 })
 
 const MISSING_ID = '00000000-0000-0000-0000-000000000000'
+
+describe('getAllAccountsForUser', () => {
+  it('returns all non-disabled accounts across all user portfolios with portfolioName', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p1 = await createPortfolio(db, 'user-1', { name: 'Retirement' })
+      const p2 = await createPortfolio(db, 'user-1', { name: 'Savings' })
+      const a1 = await createAccount(db, p1.id, 'user-1', { name: 'Roth IRA' })
+      const a2 = await createAccount(db, p2.id, 'user-1', { name: 'Brokerage' })
+
+      const result = await getAllAccountsForUser(db, 'user-1')
+      expect(result).toHaveLength(2)
+      const names = result.map((a) => a.name)
+      expect(names).toContain(a1.name)
+      expect(names).toContain(a2.name)
+      const r1 = result.find((a) => a.id === a1.id)!
+      expect(r1.portfolioName).toBe('Retirement')
+    })
+  })
+
+  it('does not return accounts belonging to another user', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p1 = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const p2 = await createPortfolio(db, 'user-2', { name: 'P2' })
+      await createAccount(db, p1.id, 'user-1', { name: 'A1' })
+      await createAccount(db, p2.id, 'user-2', { name: 'A2' })
+
+      const result = await getAllAccountsForUser(db, 'user-1')
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('A1')
+    })
+  })
+
+  it('excludes disabled accounts', async () => {
+    await withTestTransaction(testDb, async (db) => {
+      const p = await createPortfolio(db, 'user-1', { name: 'P1' })
+      const active = await createAccount(db, p.id, 'user-1', { name: 'Active' })
+      const toDisable = await createAccount(db, p.id, 'user-1', { name: 'Disabled' })
+      await disableAccount(db, toDisable.id, 'user-1')
+
+      const result = await getAllAccountsForUser(db, 'user-1')
+      expect(result.map((a) => a.id)).toContain(active.id)
+      expect(result.map((a) => a.id)).not.toContain(toDisable.id)
+    })
+  })
+})
 
 describe('getAccountsForPortfolio', () => {
   it('returns only accounts for the given portfolio', async () => {

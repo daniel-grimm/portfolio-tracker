@@ -144,7 +144,12 @@
     "ytdIncome": "YTD Income",
     "allTimeIncome": "All-Time Income",
     "projectedAnnual": "Projected Annual",
-    "last12MonthsPaid": "Last 12 months paid"
+    "last12MonthsPaid": "Last 12 months paid",
+    "monthlyIncome": "Monthly Income",
+    "annualIncome": "Annual Income",
+    "allTickers": "All Tickers",
+    "noIncome": "No paid dividends yet.",
+    "monthlyAvg": "Monthly Average"
   },
   "calendar": {
     "dividendCalendar": "Dividend Calendar",

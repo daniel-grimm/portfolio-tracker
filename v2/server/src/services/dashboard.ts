@@ -50,7 +50,7 @@ export async function getTTMIncome(db: DbInstance, userId: string): Promise<TTMI
     const [y, m] = row.payDate.split('-').map(Number)
     const key = `${y}-${m}-${row.accountId}`
     const existing = grouped.get(key)
-    const amount = parseFloat(row.totalAmount)
+    const amount = parseFloat(row.totalAmount ?? '0')
     if (existing) {
       existing.income += amount
     } else {

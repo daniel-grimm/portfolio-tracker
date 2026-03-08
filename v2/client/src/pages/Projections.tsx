@@ -94,10 +94,12 @@ function DayCell({
   day,
   dividends,
   monthName,
+  isToday,
 }: {
   day: number | null
   dividends: DividendWithAccount[]
   monthName: string
+  isToday: boolean
 }) {
   const { t } = useTranslation()
   const hasDivs = dividends.length > 0
@@ -123,7 +125,15 @@ function DayCell({
 
   const content = (
     <div className={`min-h-[72px] rounded-md border p-1.5 text-sm flex flex-col gap-1 ${cellBg}`}>
-      <span className="text-xs font-medium text-muted-foreground">{day}</span>
+      <span
+        className={
+          isToday
+            ? 'text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-primary text-primary-foreground'
+            : 'text-xs font-medium text-muted-foreground'
+        }
+      >
+        {day}
+      </span>
       {hasDivs && (
         <div
           className={`flex items-center justify-center rounded px-1 py-0.5 text-[10px] text-white font-medium ${chipColor}`}
@@ -219,6 +229,10 @@ function DividendCalendar() {
   const monthName = MONTH_NAMES[month - 1]
   const hasEvents = (calendarDays?.length ?? 0) > 0
 
+  const todayYear = now.getFullYear()
+  const todayMonth = now.getMonth() + 1
+  const todayDay = now.getDate()
+
   const accountOptions = useMemo(() => {
     if (!calendarDays) return []
     const names = new Set<string>()
@@ -303,6 +317,7 @@ function DividendCalendar() {
                 day={day}
                 dividends={day ? (dividendsByDay.get(day) ?? []) : []}
                 monthName={monthName ?? ''}
+                isToday={year === todayYear && month === todayMonth && day === todayDay}
               />
             ))}
           </div>
